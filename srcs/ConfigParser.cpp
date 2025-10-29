@@ -43,7 +43,6 @@ ServerDirective ConfigParser::getServerDirective(const std::string& line) {
 	return UNDEFINED;
 }
 
-
 void ConfigParser::parse() {
 	std::ifstream file(_config_path);
 	if (!file.is_open()) {
@@ -69,6 +68,7 @@ void ConfigParser::parse() {
 				throw std::runtime_error("Unexpected line outside server block: " + trimmed);
 		}
 	}
+	setDefaultServers();
 }
 
 void ConfigParser::parseServerBlock(std::ifstream& file) {
@@ -216,5 +216,19 @@ void ConfigParser::parseServerDirective(const std::string& line, Server& server)
 		case UNDEFINED:
 		default:
 			throw std::runtime_error("Unknown directive in server block: " + line);
+	}
+}
+
+void ConfigParser::setDefaultServers() {
+	// For each port, ensure there is one default server
+	std::map<int, bool> portHasDefault;
+	for (size_t i = 0; i < _servers.size(); ++i) {
+		int port = _servers[i].getListenPort();
+		if (!portHasDefault[port]) {
+			_servers[i].setDefault(true);   // mark the first server for this port as default
+			portHasDefault[port] = true;
+		} else {
+			_servers[i].setDefault(false);
+		}
 	}
 }

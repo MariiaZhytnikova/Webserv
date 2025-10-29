@@ -21,13 +21,10 @@ private:
 	std::string							_returnTarget;
 
 public:
-	// Constructors & OCF
 	Location();
 	~Location() = default;
 	Location(const Location& other) = default;
 	Location& operator=(const Location& other) = default;
-	Location(Location&& other) noexcept = default;
-	Location& operator=(Location&& other) noexcept = default;
 
 	// Getters
 	const std::string& getPath() const;

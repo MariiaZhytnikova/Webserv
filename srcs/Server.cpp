@@ -13,7 +13,7 @@ Server::Server()
 // Getters
 // =====================
 int Server::getListenPort() const { return _port; }
-const std::vector<std::string>& Server::getServerName() const { return _serverNames; }
+const std::vector<std::string>& Server::getServerNames() const { return _serverNames; }
 const std::vector<Location>& Server::getLocations() const { return _locations; }
 const std::string& Server::getHost() const { return _host; }
 const std::map<int, std::string>& Server::getErrorPages() const { return _errorPages; }
@@ -41,3 +41,16 @@ void Server::setMethod(const std::vector<std::string>& methods) { _methods = met
 
 void Server::addLocation(const Location& loc) { _locations.push_back(loc); }
 void Server::addLocation(Location&& loc) { _locations.push_back(std::move(loc)); }
+
+Location Server::findLocation(const std::string& path) const {
+    Location bestMatch = _locations.front(); // fallback
+
+    for (std::vector<Location>::const_iterator it = _locations.begin(); it != _locations.end(); ++it) {
+        if (path.compare(0, it->getPath().size(), it->getPath()) == 0) {
+            if (it->getPath().size() > bestMatch.getPath().size()) {
+                bestMatch = *it;
+            }
+        }
+    }
+    return bestMatch;
+}

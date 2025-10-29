@@ -6,7 +6,6 @@
 #include <utility>
 #include <algorithm>
 #include <sstream>
-#include <iostream> // test
 
 bool isDirective(const std::string& line);
 std::string trimLine(const std::string& raw);

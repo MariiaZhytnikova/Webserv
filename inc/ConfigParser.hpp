@@ -50,9 +50,15 @@ class ConfigParser {
 		ConfigLineType getLineType(const std::string& line);
 		LocationDirective getLocationDirective(const std::string& line);
 		ServerDirective getServerDirective(const std::string& line);
+		void setDefaultServers();
 
 	public:
+		ConfigParser() = delete;
 		ConfigParser(const std::string& path);
+		ConfigParser(const ConfigParser& other) = default;
+		ConfigParser& operator=(const ConfigParser& other) = default;
+		~ConfigParser() = default;
+
 		void parse();
 		const std::vector<Server>& getServers() const;
 

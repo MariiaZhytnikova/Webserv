@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <map>
-
 #include "Location.hpp"
 
 class Server {
@@ -25,14 +24,12 @@ public:
 	Server();
 	Server(const Server& other) = default;
 	Server& operator=(const Server& other) = default;
-	Server(Server&& other) noexcept = default;
-	Server& operator=(Server&& other) noexcept = default;
 	~Server() = default;
 
 	// -------------------- Getters --------------------
 	const std::string& getHost() const;
 	int getListenPort() const;
-	const std::vector<std::string>& getServerName() const;
+	const std::vector<std::string>& getServerNames() const;
 	const std::map<int, std::string>& getErrorPages() const;
 	size_t getClientMaxBodySize() const;
 	const std::string& getRoot() const;
@@ -57,4 +54,5 @@ public:
 	// -------------------- Locations --------------------
 	void addLocation(const Location& loc);
 	void addLocation(Location&& loc);
+	Location findLocation(const std::string& path) const;
 };
