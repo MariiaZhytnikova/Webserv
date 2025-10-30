@@ -6,6 +6,14 @@
 
 	//if (!isMethodAllowed(loc.getMethods()))
 
+
+RequestHandler::RequestHandler(ServerManager& manager,
+							const std::string& rawRequest,
+							int clientFd)
+	: _serverManager(manager),
+	_request(rawRequest),
+	_clientFd(clientFd) {}
+
 void RequestHandler::handle(int listenPort) {
 	try {
 		// 1️⃣ Match server
@@ -16,15 +24,9 @@ void RequestHandler::handle(int listenPort) {
 
 		// 3️⃣ Check allowed methods
 		HttpMethod method = stringToMethod(_request.getMethod());
-		std::vector<std::string> allowed = loc.getAllowedMethods();
+		std::vector<std::string> allowed = loc.getMethods();
 
-		bool ok = false;
-		for (size_t i = 0; i < allowed.size(); ++i) {
-			if (methodToString(method) == allowed[i]) {
-				ok = true;
-				break;
-			}
-		}
+		bool ok = isMethodAllowed(loc.getMethods());
 		if (!ok) {
 			HttpResponse res(405, "<h1>405 Method Not Allowed</h1>");
 			std::string allowHeader;
@@ -110,6 +112,8 @@ void RequestHandler::sendResponse(const HttpResponse& res) {
 // Marinaaaaa it is YOURS!!!!
 
 void RequestHandler::handleGet(Server& srv, Location& loc) {
+	(void)loc;
+	(void)srv;
 	// TODO: implement reading files or directory index
 	std::string body = "<h1>GET " + _request.getPath() + "</h1>";
 	HttpResponse res(200, body);
@@ -117,6 +121,8 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 }
 
 void RequestHandler::handlePost(Server& srv, Location& loc) {
+	(void)loc;
+	(void)srv;
 	// TODO: implement file upload or form handling
 	std::string body = "<h1>POST received</h1>";
 	HttpResponse res(200, body);
@@ -125,6 +131,8 @@ void RequestHandler::handlePost(Server& srv, Location& loc) {
 
 void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	// TODO: implement deleting file/resource
+	(void)loc;
+	(void)srv;
 	std::string body = "<h1>DELETE received</h1>";
 	HttpResponse res(200, body);
 	sendResponse(res);

@@ -11,8 +11,9 @@
 class ServerManager {
 private:
 	std::vector<Server>	_servers;
-	std::map<int, int>	_portSocketMap;	// key = port, value = socket fd
+	std::map<int, int>	_portSocketMap;	// key = socket fd, value = port
 	std::unordered_map<int, std::string> _clientBuffers; // client fd → received data
+	std::map<int,int> _clientToListenFd; 
 
 	void setupSockets();				// create/bind/listen
 	void acceptNewClient(int listenFd, std::vector<pollfd>& fds);
@@ -28,7 +29,7 @@ public:
 
 	const std::vector<Server>& getServers() const;
 	const Server& getServer(size_t index) const;
-	Server& ServerManager::getServer(size_t index);
+	Server& getServer(size_t index);
 
-	void run();							// main event loop
+	void run();
 };

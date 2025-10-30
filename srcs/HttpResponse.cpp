@@ -2,7 +2,7 @@
 
 HttpResponse::HttpResponse() : _version("HTTP/1.1"), _statusCode(200), _statusMessage("OK") {}
 
-HttpResponse::HttpResponse(int code, const std::string& body = "")
+HttpResponse::HttpResponse(int code, const std::string& body)
     : _statusCode(code), _body(body) {
     _statusMessage = statusMessageForCode(code);
     _headers["Content-Length"] = std::to_string(_body.size());

@@ -133,6 +133,8 @@ void ServerManager::acceptNewClient(int listenFd, std::vector<pollfd>& fds) {
 	// Add to poll and client buffer map
 	fds.push_back({ clientSock, POLLIN, 0 });
 	_clientBuffers[clientSock] = "";
+	// Track which listenFd spawned this client
+	_clientToListenFd[clientSock] = listenFd;
 }
 
 void ServerManager::readFromClient(int clientFd, std::vector<pollfd>& fds, size_t index) {
@@ -170,7 +172,9 @@ void ServerManager::handleRequest(int clientFd) {
 	_clientBuffers.erase(clientFd);
 
 	HttpRequest request(raw);
-	int listenPort = _portSocketMap[clientFd];
+	int listenFd = _clientToListenFd[clientFd];
+	int listenPort = _portSocketMap[listenFd];
+	_clientToListenFd.erase(clientFd);
 
 	try {
 		RequestHandler handler(*this, raw, clientFd);
@@ -178,10 +182,10 @@ void ServerManager::handleRequest(int clientFd) {
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Error handling request: " << e.what() << std::endl;
-
 		HttpResponse errorRes(500, "<h1>500 Internal Server Error</h1>");
 		std::string serialized = errorRes.serialize();
 		send(clientFd, serialized.c_str(), serialized.size(), 0);
+		close(clientFd);
 	}
 }
 
