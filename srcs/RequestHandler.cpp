@@ -111,12 +111,41 @@ void RequestHandler::sendResponse(const HttpResponse& res) {
 
 // Marinaaaaa it is YOURS!!!!
 
+// void RequestHandler::handleGet(Server& srv, Location& loc) {
+// 	(void)loc;
+// 	(void)srv;
+// 	// TODO: implement reading files or directory index
+// 	std::string body = "<h1>GET " + _request.getPath() + "</h1>";
+// 	HttpResponse res(200, body);
+// 	res.setHeader("Connection", "close");
+// 	sendResponse(res);
+// }
+
+#include <fstream>   // for std::ifstream
+#include <sstream>   // for std::ostringstream
+
 void RequestHandler::handleGet(Server& srv, Location& loc) {
 	(void)loc;
 	(void)srv;
-	// TODO: implement reading files or directory index
-	std::string body = "<h1>GET " + _request.getPath() + "</h1>";
+	std::string root = srv.getRoot();         // server root
+	std::string index = srv.getIndex();       // usually "index.html"
+	std::string fullPath = root + "/" + index;
+
+	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
+	if (!file) {
+		HttpResponse res(404, "<h1>404 Not Found</h1>");
+		res.setHeader("Connection", "close");
+		sendResponse(res);
+		return;
+	}
+
+	std::ostringstream buffer;
+	buffer << file.rdbuf();
+	std::string body = buffer.str();
+
 	HttpResponse res(200, body);
+	res.setHeader("Content-Type", "text/html");
+	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
 
@@ -126,6 +155,7 @@ void RequestHandler::handlePost(Server& srv, Location& loc) {
 	// TODO: implement file upload or form handling
 	std::string body = "<h1>POST received</h1>";
 	HttpResponse res(200, body);
+	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
 
@@ -135,5 +165,6 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	(void)srv;
 	std::string body = "<h1>DELETE received</h1>";
 	HttpResponse res(200, body);
+	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
