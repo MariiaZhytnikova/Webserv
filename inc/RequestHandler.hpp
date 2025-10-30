@@ -41,6 +41,7 @@ private:
 	void handleGet(Server& srv, Location& loc);
 	void handlePost(Server& srv, Location& loc);
 	void handleDelete(Server& srv, Location& loc);
+	HttpResponse makeErrorResponse(Server& srv, int code);
 
 public:
 	RequestHandler(ServerManager& manager, const std::string& rawRequest, int clientFd);

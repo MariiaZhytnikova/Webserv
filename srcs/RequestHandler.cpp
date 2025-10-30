@@ -3,9 +3,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <iostream>
-
-	//if (!isMethodAllowed(loc.getMethods()))
-
+#include <fstream>
 
 RequestHandler::RequestHandler(ServerManager& manager,
 							const std::string& rawRequest,
@@ -15,10 +13,9 @@ RequestHandler::RequestHandler(ServerManager& manager,
 	_clientFd(clientFd) {}
 
 void RequestHandler::handle(int listenPort) {
+	// 1️⃣ Match server
+	Server& srv = matchServer(_request, listenPort);
 	try {
-		// 1️⃣ Match server
-		Server& srv = matchServer(_request, listenPort);
-
 		// 2️⃣ Match location
 		Location loc = srv.findLocation(_request.getPath());
 
@@ -28,7 +25,7 @@ void RequestHandler::handle(int listenPort) {
 
 		bool ok = isMethodAllowed(loc.getMethods());
 		if (!ok) {
-			HttpResponse res(405, "<h1>405 Method Not Allowed</h1>");
+			HttpResponse res = makeErrorResponse(srv, 405);
 			std::string allowHeader;
 			for (size_t i = 0; i < allowed.size(); ++i) {
 				if (i) allowHeader += ", ";
@@ -52,7 +49,7 @@ void RequestHandler::handle(int listenPort) {
 				handleDelete(srv, loc);
 				break;
 			default: {
-				HttpResponse res(400, "<h1>400 Bad Request</h1>");
+				HttpResponse res = makeErrorResponse(srv, 400);
 				send(_clientFd, res.serialize().c_str(), res.serialize().size(), 0);
 				close(_clientFd);
 				return;
@@ -61,7 +58,7 @@ void RequestHandler::handle(int listenPort) {
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Error handling request: " << e.what() << std::endl;
-		HttpResponse res(500, "<h1>500 Internal Server Error</h1>");
+		HttpResponse res = makeErrorResponse(srv, 500);
 		send(_clientFd, res.serialize().c_str(), res.serialize().size(), 0);
 		close(_clientFd);
 	}
@@ -109,6 +106,40 @@ void RequestHandler::sendResponse(const HttpResponse& res) {
 }
 
 
+HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
+	std::string filePath;
+
+	// 1️⃣ Check if server has custom error page
+	auto it = srv.getErrorPages().find(code);
+	if (it != srv.getErrorPages().end()) {
+		filePath = srv.getRoot() + "/" + it->second; // combine root + relative path
+	} else {
+		// 2️⃣ Fallback default error folder
+		filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
+	}
+
+	std::ifstream file(filePath.c_str());
+	std::ostringstream buffer;
+
+	if (file.is_open()) {
+		buffer << file.rdbuf();
+		file.close();
+	} else {
+		// 3️⃣ Minimal inline fallback
+		buffer << "<html><body><h1>" << code << " "
+				<< HttpResponse::statusMessageForCode(code)
+				<< "</h1></body></html>";
+	}
+
+	std::string body = buffer.str();
+	HttpResponse res(code, body);
+	res.setHeader("Content-Type", "text/html");
+	res.setHeader("Content-Length", std::to_string(body.size()));
+	return res;
+}
+
+
+
 // Marinaaaaa it is YOURS!!!!
 
 // void RequestHandler::handleGet(Server& srv, Location& loc) {
@@ -134,6 +165,7 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
 	if (!file) {
 		HttpResponse res(404, "<h1>404 Not Found</h1>");
+		res.setHeader("Content-Type", "text/html");
 		res.setHeader("Connection", "close");
 		sendResponse(res);
 		return;
@@ -155,6 +187,7 @@ void RequestHandler::handlePost(Server& srv, Location& loc) {
 	// TODO: implement file upload or form handling
 	std::string body = "<h1>POST received</h1>";
 	HttpResponse res(200, body);
+	res.setHeader("Content-Type", "text/html");
 	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
@@ -165,6 +198,7 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	(void)srv;
 	std::string body = "<h1>DELETE received</h1>";
 	HttpResponse res(200, body);
+	res.setHeader("Content-Type", "text/html");
 	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
