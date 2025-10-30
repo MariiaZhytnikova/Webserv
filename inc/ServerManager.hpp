@@ -19,14 +19,16 @@ private:
 	void readFromClient(int clientFd, std::vector<pollfd>& fds, size_t index);
 	void handleRequest(int clientFd);
 
-	Server& matchServer(const HttpRequest& req, int listenPort);
-
 public:
 	ServerManager() = delete;
 	ServerManager(const std::vector<Server>& servers);
 	ServerManager(const ServerManager& other) = delete;
 	ServerManager& operator=(const ServerManager& other) = delete;
 	~ServerManager();
+
+	const std::vector<Server>& getServers() const;
+	const Server& getServer(size_t index) const;
+	Server& ServerManager::getServer(size_t index);
 
 	void run();							// main event loop
 };

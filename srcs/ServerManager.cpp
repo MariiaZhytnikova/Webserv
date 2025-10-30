@@ -1,4 +1,5 @@
 #include "ServerManager.hpp"
+#include "RequestHandler.hpp"
 #include <sys/socket.h> // for socket, bind, listen
 #include <netinet/in.h> // for sockaddr_in
 #include <arpa/inet.h> // for inet_pton, htons
@@ -14,6 +15,20 @@ ServerManager::ServerManager(const std::vector<Server>& servers)
 ServerManager::~ServerManager() {
 	for (auto& pair : _portSocketMap)
 		close(pair.second);
+}
+
+const std::vector<Server>& ServerManager::getServers() const { return _servers; }
+
+const Server& ServerManager::getServer(size_t index) const {
+	if (index >= _servers.size())
+		throw std::out_of_range("Server index out of range");
+	return _servers[index];
+}
+
+Server& ServerManager::getServer(size_t index) {
+	if (index >= _servers.size())
+		throw std::out_of_range("Server index out of range");
+	return _servers[index];
 }
 
 void ServerManager::setupSockets() {
@@ -150,57 +165,24 @@ void ServerManager::readFromClient(int clientFd, std::vector<pollfd>& fds, size_
 	}
 }
 
-Server& ServerManager::matchServer(const HttpRequest& req, int listenPort) {
-	std::string host = req.getHeader("Host");
-
-		for (size_t i = 0; i < _servers.size(); ++i) {
-			Server& srv = _servers[i]; // remove const
-			if (srv.getListenPort() == listenPort) {
-				if (std::find(srv.getServerNames().begin(),
-							srv.getServerNames().end(), host) != srv.getServerNames().end()) {
-					return srv;
-				}
-			}
-		}
-
-	// If nothing matches, return default server for this port
-	for (size_t i = 0; i < _servers.size(); ++i) {
-		const Server& srv = _servers[i];
-		if (srv.getListenPort() == listenPort && srv.isDefault()) {
-			return _servers[i];
-		}
-	}
-
-	// Fallback
-	return _servers.front();
-}
-
 void ServerManager::handleRequest(int clientFd) {
 	std::string raw = _clientBuffers[clientFd];
-	HttpRequest request(raw);
-
-	// 1. Match the Server block
-	int listenPort = _portSocketMap[clientFd];
-	Server &srv = matchServer(request, listenPort);
-
-	// 2. Match the Location
-	Location loc = srv.findLocation(request.getPath());
-
-	// 3. Build response (later via HttpResponse)
-	std::string body = "<h1>Host: " + request.getHeader("Host") + "</h1>";
-	std::string response =
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: text/html\r\n"
-		"Content-Length: " + std::to_string(body.size()) + "\r\n"
-		"\r\n" + body;
-
-	std::cout << "\n============== Response ================\n\n";
-	std::cout << response << std::endl;
-	std::cout << "========================================\n";
-
-	send(clientFd, response.c_str(), response.size(), 0);
-	close(clientFd);
 	_clientBuffers.erase(clientFd);
+
+	HttpRequest request(raw);
+	int listenPort = _portSocketMap[clientFd];
+
+	try {
+		RequestHandler handler(*this, raw, clientFd);
+		handler.handle(listenPort);
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Error handling request: " << e.what() << std::endl;
+
+		HttpResponse errorRes(500, "<h1>500 Internal Server Error</h1>");
+		std::string serialized = errorRes.serialize();
+		send(clientFd, serialized.c_str(), serialized.size(), 0);
+	}
 }
 
 
