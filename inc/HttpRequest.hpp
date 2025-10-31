@@ -10,6 +10,7 @@ Request line: METHOD PATH VERSION
 	<request-line>\r\n
 	<header1>: <value1>\r\n
 	<header2>: <value2>\r\n
+
 	...\r\n
 	\r\n
 	<body>
