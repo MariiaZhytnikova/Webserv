@@ -16,3 +16,5 @@ std::pair<std::string, std::string> parseCgi(const std::string& line);
 std::string extractPath(const std::string& line);
 size_t parseSize(const std::string& value);
 std::pair<int, std::string> parseReturn(const std::string& line);
+
+std::string getFileExtension(const std::string& path);

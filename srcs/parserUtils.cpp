@@ -160,5 +160,11 @@ std::pair<int, std::string> parseReturn(const std::string& line) {
 	return std::make_pair(code, second);
 }
 
-
+// Extracts the file extension from the request path or filename
+std::string getFileExtension(const std::string& path) {
+	size_t dot = path.find_last_of('.');
+	if (dot == std::string::npos)
+		return ""; // no extension
+	return path.substr(dot); // includes the dot, e.g. ".php"
+}
 

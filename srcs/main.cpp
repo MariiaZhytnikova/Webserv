@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 		parser.parse();
 
 		std::cout << "Lets pray for our servers! " << std::endl;
-		// PrintMe(parser.getServers());
+		PrintMe(parser.getServers());
 		ServerManager manager(parser.getServers());
 		manager.run();
 	}
