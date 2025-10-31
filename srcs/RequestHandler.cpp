@@ -5,72 +5,79 @@
 #include <iostream>
 #include <fstream>
 
-RequestHandler::RequestHandler(ServerManager& manager,
-							const std::string& rawRequest,
-							int clientFd)
+RequestHandler::RequestHandler(ServerManager& manager, 
+						const std::string& rawRequest, int clientFd)
 	: _serverManager(manager),
 	_request(rawRequest),
 	_clientFd(clientFd) {}
 
 void RequestHandler::handle(int listenPort) {
-	// 1️⃣ Match server
 	Server& srv = matchServer(_request, listenPort);
+
 	try {
-		// 2️⃣ Match location
+		// 🔹 Find matching location
 		Location loc = srv.findLocation(_request.getPath());
-
-		// 3️⃣ Check allowed methods
-		HttpMethod method = stringToMethod(_request.getMethod());
-		std::vector<std::string> allowed = loc.getMethods();
-
-		bool ok = isMethodAllowed(loc.getMethods());
-		if (!ok) {
-			HttpResponse res = makeErrorResponse(srv, 405);
-			std::string allowHeader;
-			for (size_t i = 0; i < allowed.size(); ++i) {
-				if (i) allowHeader += ", ";
-				allowHeader += allowed[i];
-			}
-			res.setHeader("Allow", allowHeader);
-			send(_clientFd, res.serialize().c_str(), res.serialize().size(), 0);
-			close(_clientFd);
+		if (!preCheckRequest(srv, loc))
 			return;
-		}
 
-		// 4️⃣ Handle by method
+		// 🔹 Dispatch to correct handler
+		HttpMethod method = stringToMethod(_request.getMethod());
 		switch (method) {
-			case METHOD_GET:
-				handleGet(srv, loc);
-				break;
-			case METHOD_POST:
-				handlePost(srv, loc);
-				break;
-			case METHOD_DELETE:
-				handleDelete(srv, loc);
-				break;
-			default: {
-				HttpResponse res = makeErrorResponse(srv, 400);
-				send(_clientFd, res.serialize().c_str(), res.serialize().size(), 0);
-				close(_clientFd);
-				return;
-			}
+			case METHOD_GET:     handleGet(srv, loc); break;
+			case METHOD_POST:    handlePost(srv, loc); break;
+			case METHOD_DELETE:  handleDelete(srv, loc); break;
+			default:             sendResponse(makeErrorResponse(srv, 400)); break;
 		}
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Error handling request: " << e.what() << std::endl;
-		HttpResponse res = makeErrorResponse(srv, 500);
-		send(_clientFd, res.serialize().c_str(), res.serialize().size(), 0);
-		close(_clientFd);
+		sendResponse(makeErrorResponse(srv, 500));
 	}
+}
+
+bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
+	// 🔹 Body size check
+	if (_request.getBody().size() > srv.getClientMaxBodySize()) {
+		sendResponse(makeErrorResponse(srv, 413));
+		return false;
+	}
+
+	// 🔹 Redirection (return directive)
+	if (loc.hasReturn()) {
+		HttpResponse res(loc.getReturnCode());
+		res.setHeader("Location", loc.getReturnTarget());
+		sendResponse(res);
+		return false;
+	}
+
+	// 🔹 Allowed methods
+	if (!isMethodAllowed(loc.getMethods())) {
+		HttpResponse res = makeErrorResponse(srv, 405);
+		std::string allowHeader;
+		for (size_t i = 0; i < loc.getMethods().size(); ++i) {
+			if (i) allowHeader += ", ";
+			allowHeader += loc.getMethods()[i];
+		}
+		res.setHeader("Allow", allowHeader);
+		sendResponse(res);
+		return false;
+	}
+
+	// --- 🔹 Path traversal protection ---
+	if (_request.getPath().find("..") != std::string::npos) {
+		sendResponse(makeErrorResponse(srv, 403));
+		return false;
+	}
+	return true;
 }
 
 Server& RequestHandler::matchServer(const HttpRequest& req, int listenPort) {
 	std::string host = req.getHeader("Host");
 
-	// Access servers via ServerManager
+	// 🔹 Access servers via ServerManager
 	const std::vector<Server>& servers = _serverManager.getServers(); // you need a getter
 
-	// Search for matching host & port
+	// 🔹 Search for matching host & port
 	for (size_t i = 0; i < servers.size(); ++i) {
 		const Server& srv = servers[i];
 		if (srv.getListenPort() == listenPort) {
@@ -80,17 +87,16 @@ Server& RequestHandler::matchServer(const HttpRequest& req, int listenPort) {
 			}
 		}
 	}
-	// Default server for this port
+	// 🔹 Default server for this port
 	for (size_t i = 0; i < servers.size(); ++i) {
 		const Server& srv = servers[i];
 		if (srv.getListenPort() == listenPort && srv.isDefault()) {
 			return _serverManager.getServer(i);
 		}
 	}
-	// Fallback
+	// 🔹 Fallback
 	return _serverManager.getServer(0);
 }
-
 
 HttpMethod RequestHandler::getMethod() const { return stringToMethod(_request.getMethod()); }
 
@@ -105,16 +111,15 @@ void RequestHandler::sendResponse(const HttpResponse& res) {
 	close(_clientFd);
 }
 
-
 HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
 	std::string filePath;
 
-	// 1️⃣ Check if server has custom error page
+	// 🔹  Check if server has custom error page
 	auto it = srv.getErrorPages().find(code);
 	if (it != srv.getErrorPages().end()) {
 		filePath = srv.getRoot() + "/" + it->second; // combine root + relative path
 	} else {
-		// 2️⃣ Fallback default error folder
+	// 🔹  Fallback default error folder
 		filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
 	}
 
@@ -125,7 +130,7 @@ HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
 		buffer << file.rdbuf();
 		file.close();
 	} else {
-		// 3️⃣ Minimal inline fallback
+	// 🔹  Minimal inline fallback
 		buffer << "<html><body><h1>" << code << " "
 				<< HttpResponse::statusMessageForCode(code)
 				<< "</h1></body></html>";
@@ -138,22 +143,30 @@ HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
 	return res;
 }
 
-
-
-// Marinaaaaa it is YOURS!!!!
-
-// void RequestHandler::handleGet(Server& srv, Location& loc) {
-// 	(void)loc;
-// 	(void)srv;
-// 	// TODO: implement reading files or directory index
-// 	std::string body = "<h1>GET " + _request.getPath() + "</h1>";
-// 	HttpResponse res(200, body);
-// 	res.setHeader("Connection", "close");
-// 	sendResponse(res);
-// }
-
+////////////////////////////////////////////////////////////////////////////////////////
 #include <fstream>   // for std::ifstream
 #include <sstream>   // for std::ostringstream
+
+/*
+This function is responsible for serving files or directories.
+It should:
+
+		Build the correct filesystem path using the server’s and location’s 
+		root and the request’s path.
+
+		If the path is a directory, check:
+
+		If autoindex is enabled → generate and return an HTML directory listing.
+
+		Otherwise, try to serve the index file (from Location or Server).
+
+		If the file doesn’t exist → return a 404 error.
+
+		If the file exists but is not readable → return a 403 error.
+
+		If the file is valid → read its contents, set the proper Content-Type, and 
+		return it with status 200.
+*/
 
 void RequestHandler::handleGet(Server& srv, Location& loc) {
 	(void)loc;
@@ -181,6 +194,23 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 	sendResponse(res);
 }
 
+/*
+This one handles uploads or form submissions.
+It should:
+
+		If upload_path is defined in the Location, save the body of the request as a new file 
+		there and respond with status 201 (Created).
+
+		If the path corresponds to a CGI script, execute the CGI program and return its output 
+		as the response.
+
+		If neither applies, simply acknowledge the POST request (for example, returning a 
+		confirmation page or echoing the data).
+
+		If the body exceeds client_max_body_size, that error should already have been caught 
+		before reaching this point.
+*/
+
 void RequestHandler::handlePost(Server& srv, Location& loc) {
 	(void)loc;
 	(void)srv;
@@ -191,6 +221,21 @@ void RequestHandler::handlePost(Server& srv, Location& loc) {
 	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
+
+/*
+This function manages resource deletion.
+It should:
+
+		Build the full filesystem path for the requested file.
+
+		If the file doesn’t exist → return a 404 error.
+
+		If the file exists but the process lacks permission to delete it → return a 403 error.
+
+		If deletion succeeds → return a 204 (No Content) response.
+
+		(Optionally) Prevent deleting outside of allowed directories (security check).
+*/
 
 void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	// TODO: implement deleting file/resource

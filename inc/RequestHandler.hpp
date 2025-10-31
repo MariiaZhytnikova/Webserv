@@ -34,9 +34,10 @@ private:
 	int _clientFd;
 
 	HttpMethod getMethod() const;
+	bool preCheckRequest(Server& srv, Location& loc);
 	bool isMethodAllowed(const std::vector<std::string>& allowed) const;
 	void sendResponse(const HttpResponse& res);
-
+	
 	Server& matchServer(const HttpRequest& req, int listenPort);
 	void handleGet(Server& srv, Location& loc);
 	void handlePost(Server& srv, Location& loc);
