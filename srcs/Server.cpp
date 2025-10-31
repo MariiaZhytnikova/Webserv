@@ -17,6 +17,7 @@ const std::vector<std::string>& Server::getServerNames() const { return _serverN
 const std::vector<Location>& Server::getLocations() const { return _locations; }
 const std::string& Server::getHost() const { return _host; }
 const std::map<int, std::string>& Server::getErrorPages() const { return _errorPages; }
+
 size_t Server::getClientMaxBodySize() const { return _clientMaxBodySize; }
 const std::string& Server::getRoot() const { return _root; }
 const std::string& Server::getIndex() const { return _index; }

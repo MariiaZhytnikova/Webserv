@@ -4,6 +4,24 @@
 #include <sstream>
 #include <map>
 
+/* HTTP Response
+
+Request line: VERSION CODE STATUS_MSG
+
+	HTTP/1.1 200 OK
+
+Headers: key-value pairs that give meta information about the request
+	Content-Type: text/html
+	Content-Length: 1234
+	Connection: close
+
+Empty line: separates headers from body (\r\n)
+
+Body: actual content of the response — HTML, JSON, image data, etc. _body contains binary data in case of image
+
+	<html><body>Hello, world!</body></html>
+*/
+
 class HttpResponse {
 private:
 	std::string _version;
@@ -12,26 +30,11 @@ private:
 	std::map<std::string, std::string> _headers;
 	std::string _body;
 
-	static std::string statusMessageForCode(int code);
-
 public:
 	HttpResponse();
 	HttpResponse(int code, const std::string& body = "");
 
 	void setHeader(const std::string& key, const std::string& value);
+	static std::string statusMessageForCode(int code);
 	std::string serialize() const;
 };
-
-/*
-Error handling
-You can now implement all error responses (404, 405, 500…) 
-consistently by just creating HttpResponse(code, body) and optionally setting extra headers.
-
-Body flexibility
-For static HTML this works. Later, for files, CGI output, or chunked encoding, 
-you’ll extend _body handling.
-
-Optional helper
-You might want a sendResponse(int clientFd) helper inside HttpResponse or 
-RequestHandler so you don’t have to repeat
-*/

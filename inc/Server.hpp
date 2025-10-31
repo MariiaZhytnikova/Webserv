@@ -31,6 +31,7 @@ public:
 	int getListenPort() const;
 	const std::vector<std::string>& getServerNames() const;
 	const std::map<int, std::string>& getErrorPages() const;
+	
 	size_t getClientMaxBodySize() const;
 	const std::string& getRoot() const;
 	const std::string& getIndex() const;
