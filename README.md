@@ -1,5 +1,7 @@
 # Webserv
 
+https://beej.us/guide/bgnet/html/#sendall
+
 ### Functionality:
 1️⃣ Server & Socket Setup
 
