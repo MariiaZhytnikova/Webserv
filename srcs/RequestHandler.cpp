@@ -195,6 +195,8 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 		return;
 	}
 
+	std::cout << "------->" << fullPath << std::endl;
+
 	std::ostringstream buffer;
 	buffer << file.rdbuf();
 	std::string body = buffer.str();
