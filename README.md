@@ -1,6 +1,7 @@
 # Webserv
 
 https://beej.us/guide/bgnet/html/#sendall
+https://www.tutorialspoint.com/cplusplus/cpp_web_programming.htm
 
 ### Functionality:
 1️⃣ Server & Socket Setup
