@@ -2,6 +2,8 @@
 
 https://beej.us/guide/bgnet/html/#sendall
 
+https://osasazamegbe.medium.com/showing-building-an-http-server-from-scratch-in-c-2da7c0db6cb7
+
 https://www.tutorialspoint.com/cplusplus/cpp_web_programming.htm
 
 ### Functionality:
