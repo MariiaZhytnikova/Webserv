@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <iostream>
 #include <fstream>
+#include "parserUtils.hpp"
 
 RequestHandler::RequestHandler(ServerManager& manager, 
 						const std::string& rawRequest, int clientFd)
@@ -19,6 +20,16 @@ void RequestHandler::handle(int listenPort) {
 		Location loc = srv.findLocation(_request.getPath());
 		if (!preCheckRequest(srv, loc))
 			return;
+
+		// 🔹 Detect CGI <- Janeeeeeeee!!!!!
+		std::string path = _request.getPath();
+		std::string ext = getFileExtension(path);
+
+		// If extension matches a CGI handler in this location
+		if (loc.getCgiExtensions().count(ext)) {
+			// TO DO handleCgi(srv, loc, path ... ????????);
+			return;
+		}
 
 		// 🔹 Dispatch to correct handler
 		HttpMethod method = stringToMethod(_request.getMethod());
