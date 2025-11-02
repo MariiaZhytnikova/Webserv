@@ -118,6 +118,8 @@ poll() - system call that allows your program to wait for activity on
 
 */
 
+
+// CHECK error handling
 void ServerManager::acceptNewClient(int listenFd, std::vector<pollfd>& fds) {
 	sockaddr_in clientAddr;
 	socklen_t addrLen = sizeof(clientAddr);
@@ -137,6 +139,8 @@ void ServerManager::acceptNewClient(int listenFd, std::vector<pollfd>& fds) {
 	_clientToListenFd[clientSock] = listenFd;
 }
 
+
+// CHECK error handling
 void ServerManager::readFromClient(int clientFd, std::vector<pollfd>& fds, size_t index) {
 	char buffer[4096];
 	ssize_t bytes = read(clientFd, buffer, sizeof(buffer));
