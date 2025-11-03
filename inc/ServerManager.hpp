@@ -3,6 +3,7 @@
 #include "Server.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "SessionManager.hpp"
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -10,10 +11,11 @@
 
 class ServerManager {
 private:
-	std::vector<Server>	_servers;
-	std::map<int, int>	_portSocketMap;	// key = socket fd, value = port
-	std::unordered_map<int, std::string> _clientBuffers; // client fd → received data
-	std::map<int,int> _clientToListenFd; 
+	std::vector<Server>						_servers;
+	std::map<int, int>						_portSocketMap;	// key = socket fd, value = port
+	std::unordered_map<int, std::string>	_clientBuffers; // client fd → received data
+	std::map<int,int>						_clientToListenFd;
+	SessionManager							_sessionManager;
 
 	void setupSockets();				// create/bind/listen
 	void acceptNewClient(int listenFd, std::vector<pollfd>& fds);
@@ -28,8 +30,9 @@ public:
 	~ServerManager();
 
 	const std::vector<Server>& getServers() const;
-	const Server& getServer(size_t index) const;
-	Server& getServer(size_t index);
+	const Server&	getServer(size_t index) const;
+	Server&			getServer(size_t index);
+	SessionManager& getSessionManager();
 
 	void run();
 };

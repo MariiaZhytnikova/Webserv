@@ -33,6 +33,9 @@ private:
 public:
 	HttpResponse();
 	HttpResponse(int code, const std::string& body = "");
+	HttpResponse(const HttpResponse& other) = default;
+	HttpResponse& operator=(const HttpResponse& other) = default;
+	~HttpResponse() = default;
 
 	void setHeader(const std::string& key, const std::string& value);
 	static std::string statusMessageForCode(int code);

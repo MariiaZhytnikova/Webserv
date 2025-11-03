@@ -80,3 +80,11 @@ const std::string& HttpRequest::getPath() const { return _path; }
 const std::string& HttpRequest::getVersion() const { return _version; }
 const std::map<std::string, std::string>& HttpRequest::getHeaders() const { return _headers; }
 const std::string& HttpRequest::getBody() const { return _body; }
+
+const std::string& HttpRequest::getCookies(const std::string& which) const {
+	static const std::string empty;
+	std::map<std::string, std::string>::const_iterator it = _cookies.find(which);
+	if (it != _cookies.end())
+		return it->second;
+	return empty;
+}

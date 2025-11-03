@@ -29,9 +29,9 @@ inline HttpMethod stringToMethod(const std::string& m) {
 
 class RequestHandler {
 private:
-	ServerManager& _serverManager; // access to servers, locations
-	HttpRequest _request;
-	int _clientFd;
+	ServerManager&	_serverManager;
+	HttpRequest		_request;
+	int				_clientFd;
 
 	HttpMethod getMethod() const;
 	bool preCheckRequest(Server& srv, Location& loc);

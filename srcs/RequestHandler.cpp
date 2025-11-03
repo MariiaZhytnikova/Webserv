@@ -1,4 +1,5 @@
 #include "RequestHandler.hpp"
+#include "Session.hpp"
 #include "Logger.hpp"
 #include <algorithm>
 #include <unistd.h>
@@ -17,6 +18,15 @@ void RequestHandler::handle(int listenPort) {
 	Server& srv = matchServer(_request, listenPort);
 
 	try {
+		std::string sessionId = _request.getCookies("session_id");
+
+		// 🔹 If no cookie was sent, make a new one
+		if (sessionId.empty()) {
+			sessionId = Session::generateSessionId();
+		}
+		Session& session = _serverManager.getSessionManager().getOrCreate(sessionId);
+		session.set("last_path", _request.getPath());
+
 		// 🔹 Find matching location
 		Location loc = srv.findLocation(_request.getPath());
 		if (!preCheckRequest(srv, loc))
@@ -46,10 +56,6 @@ void RequestHandler::handle(int listenPort) {
 		sendResponse(makeErrorResponse(srv, 500));
 	}
 }
-
-//		Logger::log(ERROR, std::string("error handling request: ") + e.what());
-// ADD LOGGER HERE
-
 
 bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 	// 🔹 Body size check
