@@ -1,171 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Webserv Project</title>
-	<link rel="stylesheet" type="text/css" href="webservPage.css">
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Jersey+25&display=swap" rel="stylesheet">
-</head>
-<style>
-	body {
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		height: 100%;
-		color: #ffe066 ;
-	}
-	.team {
-		display: flex;
-		flex-direction: row;
-		gap: 50px;
-	}
-	.teammate {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		width: 180px;
-		gap: 10px;
-		background-color: #ffe066;
-		color: black;
-		border-radius: 10px;
-		padding: 10px;
-	}
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Webserv — 42 Project</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+		<meta name="theme-color" content="#0b1220">
+		<style>
+			:root{
+				--bg: #0b1220;
+				--card: #0f1724;
+				--muted: #9aa7bf;
+				--accent: #ffcc00;
+				--glass: rgba(255,255,255,0.03);
+				--success: #28c76f;
+			}
+			*{box-sizing:border-box}
+			html,body{height:100%}
+			body{
+				margin:0;
+				font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+				background: linear-gradient(180deg, #071226 0%, #0b1220 100%);
+				color: #e6eef8;
+				-webkit-font-smoothing:antialiased;
+				-moz-osx-font-smoothing:grayscale;
+				line-height:1.45;
+			}
+			.container{max-width:1100px;margin:0 auto;padding:36px}
+			header{display:flex;align-items:center;justify-content:space-between;gap:20px}
+			.brand{display:flex;align-items:center;gap:14px}
+			.logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa500);display:flex;align-items:center;justify-content:center;color:#0b1220;font-weight:700}
+			nav a{color:var(--muted);text-decoration:none;margin-left:18px}
+			.hero{display:grid;grid-template-columns:1fr 360px;gap:28px;margin-top:24px;align-items:start}
+			.card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+			h1{margin:0;font-size:28px}
+			p.lead{color:var(--muted);margin-top:8px}
+			.quicklinks{display:flex;flex-direction:column;gap:12px}
+			.btn{display:inline-block;padding:10px 14px;border-radius:8px;background:var(--accent);color:#071226;font-weight:600;text-decoration:none}
+			.row{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px}
+			.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px}
+			.feature{background:var(--glass);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+			.feature h3{margin:0 0 8px 0;font-size:16px}
+			.muted{color:var(--muted);font-size:14px}
+			.team{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+			.member{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:8px;min-width:160px}
+			pre{background:#071226;padding:12px;border-radius:8px;overflow:auto;color:#cfe8ff}
+			footer{margin-top:40px;padding:26px 0;color:var(--muted);text-align:center;font-size:14px}
+			a.inline-link{color:var(--accent);text-decoration:none}
+			@media (max-width:880px){.hero{grid-template-columns:1fr}}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<div class="brand">
+					<div class="logo">W</div>
+					<div>
+						<div style="font-weight:600">Webserv</div>
+						<div class="muted" style="font-size:13px">Custom HTTP server — 42 project</div>
+					</div>
+				</div>
+				<nav>
+					<a href="#features">Features</a>
+					<a href="#try">Try</a>
+					<a href="#team">Team</a>
+					<a href="/conf/default.conf" class="inline-link">Config</a>
+				</nav>
+			</header>
 
-	.methods {
-		display: grid;
-		grid-template-columns: auto auto auto;
-		gap: 50px;
-	}
+			<main class="hero">
+				<section>
+					<div class="card">
+						<h1>Welcome to Webserv</h1>
+						<p class="lead">A lightweight, C++ HTTP server implementing the mandatory and bonus parts of the 42 webserv project: virtual hosts, CGI, file uploads, custom error pages and more.</p>
+						<div class="row">
+							<a class="btn" href="#try">Try endpoints</a>
+							<a class="btn" href="https://github.com/MariiaZhytnikova/Webserv" target="_blank" rel="noopener">View repo</a>
+						</div>
 
-	.method {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		width: 180px;
-		gap: 10px;
-		background-color: #45ee72;
-		color: black;
-		border-radius: 10px;
-		padding: 10px;
-	}
-	footer {
-		text-align: center;
-		color: #ffe066;
-		padding: 10px;
-		position: fixed;
-		bottom: 0;
-		width: 100%;
-	
-	}
-</style>
-<body>
-	<!-- <nav>
-		<ul>
-			<li><a href="webservPage.html">Home</a></li>
-			<li><a href="formPage.html">Form</a></li>
-			<li><a href="uploadPage.html">Upload</a></li>
-		</ul>
-	</nav> -->
-	<section>
-		<h1>Welcome to Webserv</h1>
-		<p>
-			Webserv is a custom HTTP server written in C++.
-		</p>
-		<h2>Team</h2>
-		<div class="team">
-			<div class="teammate">
-				<h3>Mariia Zhitnikova</h3>
-				<p>mzhitnik</p>
-				<p><link rel="alternate" href="atom.xml" type="application/atom+xml" title="Atom"></p>
-			</div>
-			<div class="teammate">
-				<h3>Evgeniia Kashirskaia</h3>
-				<p>ekashirs</p>
-			</div>
-			<div class="teammate">
-				<h3>Marina Zhivotova</h3>
-				<p>mzhivoto</p>
-			</div>
-		</div>
-	</section>
-	<section>
-		<h2>Mandatory part</h2>
-		<div class="methods">
-			<div class="method">
-				<h3>GET</h3>
-				<p>try get method</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>POST</h3>
-				<p>try post method</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>DELETE</h3>
-				<p>try delete method</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>UPLOAD</h3>
-				<p>try upload method</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>DOWNLOAD</h3>
-				<p>try upload method</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>LIST DIRECTORY</h3>
-				<p>list</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>REDIRECTION</h3>
-				<p>go to some site with 301 redirection</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>CUSTOM ERROR PAGES</h3>
-				<p>Display custom 404</p>
-				<button class="try">TRY</button>
-			</div>
-		</div>
-	</section>
-	<section>
-		<h2>CGI</h2>
-		<div class="methods">
-			<div class="method">
-				<h3>CGI PYTHON</h3>
-				<p>Execute a CGI python script</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>CGI PYTHON</h3>
-				<p>Execute a CGI PHP script</p>
-				<button class="try">TRY</button>
-			</div>
-			<div class="method">
-				<h3>CUSTOM ERROR PAGES</h3>
-				<p>Display custom 404</p>
-				<button class="try">TRY</button>
-			</div>
-		</div>
-	</section>
-	<footer>
-			<div class="footer">
-				<span>© 2025 - Webserv made with ♥ by </span> —
-				<a href="https://github.com/MariiaZhytnikova" target="_blank" class="author-link">Mariia/mzhitnik</a> & 
-				<a href="https://github.com/janeyears" target="_blank" class="author-link">Jane/ekashirs</a> &
-				<a href="https://github.com/marinezh" target="_blank" class="author-link">Marina/mzhivoto</a>
-			</div>
-		</footer>
+						<section id="features" class="features" aria-label="features">
+							<div class="feature">
+								<h3>Static files (GET)</h3>
+								<div class="muted">Serves files from the configured root. Try: <code>/index.html</code></div>
+							</div>
+							<div class="feature">
+								<h3>Form handling (POST)</h3>
+								<div class="muted">Parses POST bodies and handles multipart uploads.</div>
+							</div>
+							<div class="feature">
+								<h3>Directory listing</h3>
+								<div class="muted">Auto-index pages or custom listings depending on config.</div>
+							</div>
+							<div class="feature">
+								<h3>CGI</h3>
+								<div class="muted">Execute scripts (Python / PHP) via CGI interface.</div>
+							</div>
+							<div class="feature">
+								<h3>Custom errors</h3>
+								<div class="muted">Custom error pages for 404, 403, 500 etc.</div>
+							</div>
+							<div class="feature">
+								<h3>Redirection</h3>
+								<div class="muted">Configure 301/302 redirects per location.</div>
+							</div>
+						</section>
 
-</body>
+						<section style="margin-top:18px">
+							<h3 style="margin-bottom:6px">Quick test commands</h3>
+							<pre><code>curl -i http://localhost:8080/
+curl -i -X POST -d "hello=world" http://localhost:8080/echo
+curl -i -X DELETE http://localhost:8080/resource
+curl -i -F "file=@test.txt" http://localhost:8080/upload</code></pre>
+							<div class="muted" style="margin-top:8px">Replace port/path as configured in your `default.conf`</div>
+						</section>
+					</div>
+				</section>
+
+				<aside>
+					<div class="card">
+						<h3 id="try">Try endpoints</h3>
+						<div class="quicklinks">
+							<a class="btn" href="/">GET / (index)</a>
+							<a class="btn" href="/download/sample.txt">DOWNLOAD /sample.txt</a>
+							<a class="btn" href="/upload" style="background:var(--success)">UPLOAD (form)</a>
+							<a class="btn" href="/cgi-bin/test.py">CGI: test.py</a>
+							<a class="btn" href="/list/">Directory listing</a>
+							<a class="btn" href="/redirect-me">Redirect (301)</a>
+						</div>
+
+						<div style="margin-top:16px">
+							<h4 style="margin:0 0 8px 0">Team</h4>
+							<div class="team">
+								<div class="member"><strong>Mariia Z.</strong><div class="muted">mzhitnik</div></div>
+								<div class="member"><strong>Evgeniia K.</strong><div class="muted">ekashirs</div></div>
+								<div class="member"><strong>Marina Z.</strong><div class="muted">mzhivoto</div></div>
+							</div>
+						</div>
+					</div>
+				</aside>
+			</main>
+
+			<footer>
+				© 2025 Webserv — made with ♥ by
+				<a class="inline-link" href="https://github.com/MariiaZhytnikova" target="_blank">Mariia</a>,
+				<a class="inline-link" href="https://github.com/janeyears" target="_blank">Evgeniia</a>,
+				<a class="inline-link" href="https://github.com/marinezh" target="_blank">Marina</a>
+			</footer>
+		</div>
+	</body>
 </html>
