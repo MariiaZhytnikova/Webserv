@@ -1,5 +1,5 @@
 #include "ConfigParser.hpp"
-#include "parserUtils.hpp"
+#include "utils.hpp"
 #include <fstream>
 #include <algorithm>
 #include <cctype>
@@ -46,9 +46,7 @@ ServerDirective ConfigParser::getServerDirective(const std::string& line) {
 void ConfigParser::parse() {
 	std::ifstream file(_config_path);
 	if (!file.is_open()) {
-		std::cerr << "Error: cannot open config file '" 
-				  << _config_path << "'" << std::endl;
-		return;
+		throw std::runtime_error("cannot open config file: " + _config_path);
 	}
 	std::string raw;
 
@@ -62,10 +60,10 @@ void ConfigParser::parse() {
 				parseServerBlock(file);
 				break;
 			case UNKNOWN:
-				throw std::runtime_error("Unknown line outside server block: " + trimmed);
+				throw std::runtime_error("unknown line outside server block: " + trimmed);
 			default:
 				// other cases are invalid outside server
-				throw std::runtime_error("Unexpected line outside server block: " + trimmed);
+				throw std::runtime_error("unexpected line outside server block: " + trimmed);
 		}
 	}
 	setDefaultServers();
@@ -91,13 +89,13 @@ void ConfigParser::parseServerBlock(std::ifstream& file) {
 				_servers.push_back(server);
 				return;
 			case BLOCK_START_SERVER:
-				throw std::runtime_error("Nested server bock is invalid: " + line);
+				throw std::runtime_error("nested server bock is invalid: " + line);
 			case UNKNOWN:
-				throw std::runtime_error("Invalid line inside server block: " + line);
+				throw std::runtime_error("invalid line inside server block: " + line);
 		}
 	}
 	// EOF reached without closing }
-	throw std::runtime_error("Server block not closed with '}'");
+	throw std::runtime_error("server block not closed with '}'");
 }
 
 void ConfigParser::parseLocationBlock(std::ifstream& file, Server& server, const std::string& line) {
@@ -120,11 +118,11 @@ void ConfigParser::parseLocationBlock(std::ifstream& file, Server& server, const
 			case BLOCK_START_SERVER:
 			case BLOCK_START_LOCATION:
 			case UNKNOWN:
-				throw std::runtime_error("Invalid line inside location block: " + line);
+				throw std::runtime_error("invalid line inside location block: " + line);
 		}
 	}
 	// EOF reached without closing }
-	throw std::runtime_error("Location block not closed with '}'");
+	throw std::runtime_error("location block not closed with '}'");
 }
 
 void ConfigParser::parseLocationDirective(const std::string& line, Location& loc) {
@@ -167,7 +165,7 @@ void ConfigParser::parseLocationDirective(const std::string& line, Location& loc
 		}
 		case OTHER:
 		default:
-			throw std::runtime_error("Unknown directive in location block: " + line);
+			throw std::runtime_error("unknown directive in location block: " + line);
 	}
 }
 
@@ -193,7 +191,7 @@ void ConfigParser::parseServerDirective(const std::string& line, Server& server)
 			int code;
 			std::string page;
 			if (!(iss >> code >> page))
-				throw std::runtime_error("Invalid error_page: " + line);
+				throw std::runtime_error("invalid error_page: " + line);
 
 			server.setErrorPage(code, page);
 			break;
@@ -215,7 +213,7 @@ void ConfigParser::parseServerDirective(const std::string& line, Server& server)
 			break;
 		case UNDEFINED:
 		default:
-			throw std::runtime_error("Unknown directive in server block: " + line);
+			throw std::runtime_error("unknown directive in server block: " + line);
 	}
 }
 

@@ -3,6 +3,7 @@ NAME := webServ
 SRC_DIR := ./srcs
 INC_DIR := ./inc
 OBJ_DIR := ./obj
+LOG_DIR := ./log/
 
 SRC := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC))
@@ -13,7 +14,7 @@ CFLAGS := -Wall -Wextra -Werror -std=c++20 -pedantic -I$(INC_DIR)
 
 all: $(NAME)
 
-$(NAME): $(OBJ)
+$(NAME): $(OBJ) $(LOG_DIR)
 	$(CC) $(CFLAGS) $(OBJ) -o $(NAME)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
@@ -22,10 +23,13 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
+$(LOG_DIR):
+	@mkdir -p $(LOG_DIR)
+
 -include $(DEP)
 
 clean:
-	rm -rf $(OBJ_DIR)
+	rm -rf $(OBJ_DIR) $(LOG_DIR)
 
 fclean: clean
 	rm -f $(NAME)

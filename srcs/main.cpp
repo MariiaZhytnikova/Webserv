@@ -1,6 +1,6 @@
-#include <iostream>
 #include "ConfigParser.hpp"
 #include "ServerManager.hpp"
+#include "Logger.hpp"
 
 void PrintMe(const std::vector<Server>& servers) {
 	for (size_t i = 0; i < servers.size(); ++i) {
@@ -53,29 +53,31 @@ void PrintMe(const std::vector<Server>& servers) {
 
 int main(int argc, char **argv) {
 
+	Logger::init("./log/access.log", "./log/error.log");
+	Logger::log(INFO, "starting server...");
 	std::string config_path = "conf/default.conf";
 
 	if (argc > 2) {
-		std::cerr << "Usage: ./webserv [config_file]" << std::endl;
+		Logger::log(ERROR, "usage: ./webserv [config_file]");
 		return 1;
 	}
 
 	if (argc == 2)
 		config_path = argv[1];
 
-	std::cout << "Using configuration: " << config_path << std::endl;
+	Logger::log(INFO, "configuration file: " + config_path);
 
 	try {
 		ConfigParser parser(config_path);
 		parser.parse();
 
-		std::cout << "Lets pray for our servers! " << std::endl;
 		// PrintMe(parser.getServers());
 		ServerManager manager(parser.getServers());
 		manager.run();
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Failed to start Webserv: " << e.what() << std::endl;
+		// std::cerr << "Failed to start Webserv: " << e.what() << std::endl;
+		Logger::log(ERROR, std::string(e.what()));
 		return 1;
 	}
 	return 0;

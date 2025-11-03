@@ -1,5 +1,6 @@
 #include "ServerManager.hpp"
 #include "RequestHandler.hpp"
+#include "Logger.hpp"
 #include <sys/socket.h> // for socket, bind, listen
 #include <netinet/in.h> // for sockaddr_in
 #include <arpa/inet.h> // for inet_pton, htons
@@ -21,13 +22,13 @@ const std::vector<Server>& ServerManager::getServers() const { return _servers; 
 
 const Server& ServerManager::getServer(size_t index) const {
 	if (index >= _servers.size())
-		throw std::out_of_range("Server index out of range");
+		throw std::out_of_range("server index out of range");
 	return _servers[index];
 }
 
 Server& ServerManager::getServer(size_t index) {
 	if (index >= _servers.size())
-		throw std::out_of_range("Server index out of range");
+		throw std::out_of_range("server index out of range");
 	return _servers[index];
 }
 
@@ -42,12 +43,12 @@ void ServerManager::setupSockets() {
 		// SOCK_STREAM: TCP (reliable, connection-oriented)
 		int sock = socket(AF_INET, SOCK_STREAM, 0);
 		if (sock < 0)
-			throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+			throw std::runtime_error("failed to create socket: " + std::string(strerror(errno)));
 
 		// Allows restart immediately and reuse the same port safely
 		int opt = 1;		// 0/1 -> off/on
 		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-			throw std::runtime_error("Failed to setsockopt: " + std::string(strerror(errno)));
+			throw std::runtime_error("failed to setsockopt: " + std::string(strerror(errno)));
 		// Make socket non-blocking
 		fcntl(sock, F_SETFL, O_NONBLOCK);
 
@@ -80,22 +81,22 @@ void ServerManager::setupSockets() {
 			// Internet presentation to network”
 			// converts an IP address from string to its binary form used by the OS for sockets
 			if (inet_pton(AF_INET, srv.getHost().c_str(), &ip) <= 0)
-				throw std::runtime_error("Invalid host: " + srv.getHost());
+				throw std::runtime_error("invalid host: " + srv.getHost());
 		}
 		addr.sin_addr.s_addr = ip;
 
 		// associates the socket with an IP address and port
 		// failure occurs if the port is already in use, you don’t have permission, or the IP is invalid
 		if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0)
-			throw std::runtime_error("Failed to bind socket: " + std::string(strerror(errno)));
+			throw std::runtime_error("failed to bind socket: " + std::string(strerror(errno)));
 
 		// start listening for incoming TCP connections on the socket
 		// failure returns -1 if the socket is invalid or not bound
 		// SOMAXCONN: OS decide how many pending connections can wait
 		if (listen(sock, SOMAXCONN) < 0)
-			throw std::runtime_error("Failed to listen on socket: " + std::string(strerror(errno)));
+			throw std::runtime_error("failed to listen on socket: " + std::string(strerror(errno)));
 		else
-			std::cout << "Listening on port " << port << " (fd=" << sock << ")" << std::endl;
+			Logger::log(INFO, "server started on port: " + std::to_string(port));
 		_portSocketMap[sock] = port;
 	}
 }
@@ -119,17 +120,21 @@ poll() - system call that allows your program to wait for activity on
 */
 
 
-// CHECK error handling
 void ServerManager::acceptNewClient(int listenFd, std::vector<pollfd>& fds) {
 	sockaddr_in clientAddr;
 	socklen_t addrLen = sizeof(clientAddr);
 	int clientSock = accept(listenFd, (struct sockaddr*)&clientAddr, &addrLen);
 	if (clientSock < 0) {
-		perror("accept");
+		Logger::log(ERROR, "failed to accept new client connection: " + std::string(strerror(errno)));
 		return;
 	}
+	char clientIP[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, INET_ADDRSTRLEN);
+	int clientPort = ntohs(clientAddr.sin_port);
 
-	std::cout << "New connection accepted (fd=" << clientSock << ")\n";
+	Logger::log(INFO, "accepted connection from " +
+						std::string(clientIP) + ":" +
+						std::to_string(clientPort));
 	fcntl(clientSock, F_SETFL, O_NONBLOCK);
 
 	// Add to poll and client buffer map
@@ -147,49 +152,47 @@ void ServerManager::readFromClient(int clientFd, std::vector<pollfd>& fds, size_
 
 	if (bytes <= 0) {
 		if (bytes == 0)
-			std::cout << "Client disconnected: fd=" << clientFd << std::endl;
+			Logger::log(INFO, "client disconnected: fd=" + std::to_string(clientFd));
 		else
-			perror("read");
-
+			Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
+								   ": " + std::string(strerror(errno)));
 		close(clientFd);
 		_clientBuffers.erase(clientFd);
 		fds.erase(fds.begin() + index);
 		return;
 	}
-	_clientBuffers[clientFd].append(buffer, bytes);
-	std::cout << "Received " << bytes << " bytes from fd=" << clientFd << std::endl;
 
-	std::cout << "\n=========== Client buffers =============\n\n";
-	for (const auto& pair : _clientBuffers) {
-		std::cout << pair.second << "\n";
-	}
-	std::cout << "========================================\n";
+	_clientBuffers[clientFd].append(buffer, bytes);
+	Logger::log(DEBUG, "received " + std::to_string(bytes) +
+						" bytes from fd=" + std::to_string(clientFd));
+
 
 	if (_clientBuffers[clientFd].find("\r\n\r\n") != std::string::npos) {
+		Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
 		handleRequest(clientFd);
 		fds.erase(fds.begin() + index); // remove client from poll
+	} else {
+		// Still receiving — do nothing
+		Logger::log(DEBUG, "partial request, waiting for more data on fd=" +
+						std::to_string(clientFd));
 	}
 }
 
 void ServerManager::handleRequest(int clientFd) {
-	std::string raw = _clientBuffers[clientFd];
-	_clientBuffers.erase(clientFd);
-
-	HttpRequest request(raw);
-	int listenFd = _clientToListenFd[clientFd];
-	int listenPort = _portSocketMap[listenFd];
-	_clientToListenFd.erase(clientFd);
-
 	try {
+		std::string raw = _clientBuffers[clientFd];
+		_clientBuffers.erase(clientFd);
+
+		HttpRequest request(raw);
+		int listenFd = _clientToListenFd[clientFd];
+		int listenPort = _portSocketMap[listenFd];
+		_clientToListenFd.erase(clientFd);
+
 		RequestHandler handler(*this, raw, clientFd);
 		handler.handle(listenPort);
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Error handling request: " << e.what() << std::endl;
-		HttpResponse errorRes(500, "<h1>500 Internal Server Error</h1>");
-		std::string serialized = errorRes.serialize();
-		send(clientFd, serialized.c_str(), serialized.size(), 0);
-		close(clientFd);
+		Logger::log(ERROR, std::string("request error: ") + e.what());
 	}
 }
 
@@ -209,16 +212,19 @@ void ServerManager::run() {
 	while (true) {
 		int ret = poll(fds.data(), fds.size(), -1); // -1 = wait forever
 		if (ret < 0) {
-			throw std::runtime_error("poll failed: " + std::string(strerror(errno)));
+			if (errno == EINTR) {
+				Logger::log(INFO, "poll interrupted, continuing...");
+				continue;
+			}
+			Logger::log(ERROR, "poll() failed: " + std::string(strerror(errno)));
+			break;
 		}
 		for (size_t i = 0; i < fds.size(); ++i) {
 			// true if there is data to read on this fd
 			if (fds[i].revents & POLLIN) {
 				if (_portSocketMap.count(fds[i].fd)) {
-					std::cout << "\n=========== acceptNewClient ============\n\n";
 					acceptNewClient(fds[i].fd, fds);
 				} else {
-					std::cout << "\n=========== readFromClient =============\n\n";
 					readFromClient(fds[i].fd, fds, i);
 				}
 			}
