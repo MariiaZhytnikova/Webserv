@@ -32,8 +32,8 @@ class HttpRequest {
 		std::string _method;
 		std::string _path;
 		std::string _version;
-		std::map<std::string, std::string> _headers;
 		std::string _body;
+		std::map<std::string, std::string> _headers;
 		std::map<std::string, std::string> _cookies;
 
 		void parseRequestLine(std::istringstream& stream);
@@ -43,6 +43,10 @@ class HttpRequest {
 
 	public:
 		HttpRequest(const std::string& raw);
+		HttpRequest(const HttpRequest& other) = default;
+		HttpRequest& operator=(const HttpRequest& other) = default;
+		~HttpRequest() = default;
+
 		std::string getHeader(const std::string& key) const;
 
 	// -------------------- Getters --------------------
@@ -51,6 +55,7 @@ class HttpRequest {
 		const std::string& getVersion() const;
 		const std::map<std::string, std::string>& getHeaders() const;
 		const std::string& getBody() const;
+		const std::string& getCookies(const std::string& which) const;
 };
 
 
