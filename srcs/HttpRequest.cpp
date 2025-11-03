@@ -21,13 +21,40 @@ void HttpRequest::parseRequestLine(std::istringstream& stream) {
 void HttpRequest::parseHeaders(std::istringstream& stream) {
 	std::string line;
 	while (std::getline(stream, line) && line != "\r") {
-		if (!line.empty() && line.back() == '\r') line.pop_back();
-		size_t pos = line.find(":");
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
+		size_t pos = line.find(':');
 		if (pos != std::string::npos) {
 			std::string key = line.substr(0, pos);
 			std::string value = line.substr(pos + 1);
-			while (!value.empty() && value[0] == ' ') value.erase(0, 1);
+			while (!value.empty() && value[0] == ' ')
+				value.erase(0, 1);
 			_headers[key] = value;
+		}
+	}
+
+	std::map<std::string, std::string>::iterator it = _headers.find("Cookie");
+	if (it != _headers.end())
+		parseCookies(it->second);
+}
+
+void HttpRequest::parseCookies(const std::string& cookieStr) {
+	std::istringstream cookieStream(cookieStr);
+	std::string pair;
+
+	while (std::getline(cookieStream, pair, ';')) {
+		size_t eqPos = pair.find('=');
+		if (eqPos != std::string::npos) {
+			std::string name = pair.substr(0, eqPos);
+			std::string value = pair.substr(eqPos + 1);
+
+			// Trim spaces
+			while (!name.empty() && name[0] == ' ')
+				name.erase(0, 1);
+			while (!value.empty() && value[0] == ' ')
+				value.erase(0, 1);
+
+			_cookies[name] = value;
 		}
 	}
 }
