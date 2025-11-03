@@ -11,7 +11,7 @@
 #include <algorithm>
 
 ServerManager::ServerManager(const std::vector<Server>& servers)
-	: _servers(servers) { }
+	: _servers(servers), _sessionManager() { }
 
 ServerManager::~ServerManager() {
 	for (auto& pair : _portSocketMap)
@@ -31,6 +31,8 @@ Server& ServerManager::getServer(size_t index) {
 		throw std::out_of_range("server index out of range");
 	return _servers[index];
 }
+
+SessionManager& ServerManager::getSessionManager() { return _sessionManager; }
 
 void ServerManager::setupSockets() {
 	for (size_t i = 0; i < _servers.size(); ++i) {

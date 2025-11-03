@@ -1,0 +1,30 @@
+#pragma once
+#include <string>
+#include <map>
+#include <ctime>
+
+class Session {
+private:
+	std::string							_id;
+	std::map<std::string, std::string>	_data;
+
+	time_t								_lastAccess;
+	time_t								_expirySeconds;
+
+public:
+	Session();
+	Session(const std::string& id);
+	Session(const Session& other) = default;
+	Session& operator=(const Session& other) = default;
+	~Session() = default;
+
+	std::string			getSession(const std::string& key) const;
+	const std::string&	getId() const ;
+
+	void				set(const std::string& key, const std::string& value);
+
+	void touch();
+	bool expired() const;
+
+	static std::string	generateSessionId();
+};
