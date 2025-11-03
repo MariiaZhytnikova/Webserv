@@ -1,10 +1,11 @@
 #include "RequestHandler.hpp"
+#include "Logger.hpp"
 #include <algorithm>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <iostream>
 #include <fstream>
-#include "parserUtils.hpp"
+#include "utils.hpp"
 
 RequestHandler::RequestHandler(ServerManager& manager, 
 						const std::string& rawRequest, int clientFd)
@@ -34,22 +35,27 @@ void RequestHandler::handle(int listenPort) {
 		// 🔹 Dispatch to correct handler
 		HttpMethod method = stringToMethod(_request.getMethod());
 		switch (method) {
-			case METHOD_GET:     handleGet(srv, loc); break;
-			case METHOD_POST:    handlePost(srv, loc); break;
-			case METHOD_DELETE:  handleDelete(srv, loc); break;
-			default:             sendResponse(makeErrorResponse(srv, 400)); break;
+			case METHOD_GET:	handleGet(srv, loc); break;
+			case METHOD_POST:	handlePost(srv, loc); break;
+			case METHOD_DELETE:	handleDelete(srv, loc); break;
+			default:			sendResponse(makeErrorResponse(srv, 400)); break;
 		}
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Error handling request: " << e.what() << std::endl;
+		Logger::log(ERROR, std::string("error handling request: ") + e.what());
 		sendResponse(makeErrorResponse(srv, 500));
 	}
 }
+
+//		Logger::log(ERROR, std::string("error handling request: ") + e.what());
+// ADD LOGGER HERE
+
 
 bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 	// 🔹 Body size check
 	if (_request.getBody().size() > srv.getClientMaxBodySize()) {
 		sendResponse(makeErrorResponse(srv, 413));
+		Logger::log(ERROR, std::string("payload Too Large"));
 		return false;
 	}
 
@@ -58,6 +64,7 @@ bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 		HttpResponse res(loc.getReturnCode());
 		res.setHeader("Location", loc.getReturnTarget());
 		sendResponse(res);
+		Logger::log(ERROR, std::string("redirect to ") + loc.getReturnTarget());
 		return false;
 	}
 
@@ -70,6 +77,7 @@ bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 			allowHeader += loc.getMethods()[i];
 		}
 		res.setHeader("Allow", allowHeader);
+		Logger::log(ERROR, std::string("method not allowed: ") + allowHeader);
 		sendResponse(res);
 		return false;
 	}
@@ -77,6 +85,7 @@ bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 	// --- 🔹 Path traversal protection ---
 	if (_request.getPath().find("..") != std::string::npos) {
 		sendResponse(makeErrorResponse(srv, 403));
+		Logger::log(ERROR, std::string("fobidden path: ") + _request.getPath());
 		return false;
 	}
 	return true;
@@ -86,7 +95,7 @@ Server& RequestHandler::matchServer(const HttpRequest& req, int listenPort) {
 	std::string host = req.getHeader("Host");
 
 	// 🔹 Access servers via ServerManager
-	const std::vector<Server>& servers = _serverManager.getServers(); // you need a getter
+	const std::vector<Server>& servers = _serverManager.getServers();
 
 	// 🔹 Search for matching host & port
 	for (size_t i = 0; i < servers.size(); ++i) {
@@ -94,7 +103,7 @@ Server& RequestHandler::matchServer(const HttpRequest& req, int listenPort) {
 		if (srv.getListenPort() == listenPort) {
 			if (std::find(srv.getServerNames().begin(),
 						  srv.getServerNames().end(), host) != srv.getServerNames().end()) {
-				return _serverManager.getServer(i); // or implement getter by index
+				return _serverManager.getServer(i);
 			}
 		}
 	}
@@ -195,7 +204,7 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 		return;
 	}
 
-	std::cout << "------->" << fullPath << std::endl;
+	Logger::log(DEBUG, std::string("return file: ") + fullPath);
 
 	std::ostringstream buffer;
 	buffer << file.rdbuf();

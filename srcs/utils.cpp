@@ -1,4 +1,4 @@
-#include "parserUtils.hpp"
+#include "utils.hpp"
 
 bool isDirective(const std::string& line) {
 	// If line ends with ';' → it's a directive

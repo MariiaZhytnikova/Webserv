@@ -34,10 +34,12 @@ class HttpRequest {
 		std::string _version;
 		std::map<std::string, std::string> _headers;
 		std::string _body;
+		std::map<std::string, std::string> _cookies;
 
 		void parseRequestLine(std::istringstream& stream);
 		void parseHeaders(std::istringstream& stream);
 		void parseBody(std::istringstream& stream);
+		void parseCookies(const std::string& cookieStr);
 
 	public:
 		HttpRequest(const std::string& raw);
@@ -50,3 +52,19 @@ class HttpRequest {
 		const std::map<std::string, std::string>& getHeaders() const;
 		const std::string& getBody() const;
 };
+
+
+/*
+Client → Server
+	Cookie: session=abc123; theme=dark
+
+Server → Client
+	Set-Cookie: session=abc123; Path=/; HttpOnly
+
+	If you want to go a bit further (for your own testing or a “bonus” feel):
+
+	Parse Cookie: header in your HttpRequest class → store it as a map<string, string> cookies.
+
+	Add Set-Cookie: header in your HttpResponse when needed.
+
+*/
