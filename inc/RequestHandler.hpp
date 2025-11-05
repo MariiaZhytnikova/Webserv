@@ -32,6 +32,7 @@ private:
 	ServerManager&	_serverManager;
 	HttpRequest		_request;
 	int				_clientFd;
+	bool			_keepAlive;
 
 	HttpMethod getMethod() const;
 	bool preCheckRequest(Server& srv, Location& loc);
@@ -48,3 +49,28 @@ public:
 	RequestHandler(ServerManager& manager, const std::string& rawRequest, int clientFd);
 	void handle(int listenPort);
 };
+
+
+/*
+- Host header
+
+Mandatory in HTTP/1.1.
+
+Every request must have: Host: example.com
+
+- Header parsing
+
+Case-insensitive header names.
+
+Multiple headers with same name can appear — handle correctly.
+
+Trailing whitespace should be trimmed.
+
+
+- Content-Length
+
+If not using chunked transfer, you must send:
+
+
+
+*/

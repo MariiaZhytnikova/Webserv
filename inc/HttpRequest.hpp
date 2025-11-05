@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <vector>
 #include <string>
 #include <sstream>
 
@@ -47,15 +48,14 @@ class HttpRequest {
 		HttpRequest& operator=(const HttpRequest& other) = default;
 		~HttpRequest() = default;
 
-		std::string getHeader(const std::string& key) const;
-
 	// -------------------- Getters --------------------
-		const std::string& getMethod() const;
-		const std::string& getPath() const;
-		const std::string& getVersion() const;
+		const std::string&	getMethod() const;
+		const std::string&	getPath() const;
+		const std::string&	getVersion() const;
+		std::string			getHeader(const std::string& key) const;
 		const std::map<std::string, std::string>& getHeaders() const;
-		const std::string& getBody() const;
-		const std::string& getCookies(const std::string& which) const;
+		const std::string&	getBody() const;
+		const std::string&	getCookies(const std::string& which) const;
 };
 
 

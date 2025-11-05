@@ -147,7 +147,6 @@ void ServerManager::acceptNewClient(int listenFd, std::vector<pollfd>& fds) {
 }
 
 
-// CHECK error handling
 void ServerManager::readFromClient(int clientFd, std::vector<pollfd>& fds, size_t index) {
 	char buffer[4096];
 	ssize_t bytes = read(clientFd, buffer, sizeof(buffer));
