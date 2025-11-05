@@ -1,6 +1,7 @@
 #include "RequestHandler.hpp"
 #include "Session.hpp"
 #include "Logger.hpp"
+#include "StaticFiles.hpp"
 #include <algorithm>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -169,57 +170,17 @@ HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
 	return res;
 }
 
-//////////////////////// MARINA ////////////////////////////////////////////////////////////////
-#include <fstream>   // for std::ifstream
-#include <sstream>   // for std::ostringstream
-
-/*
-This function is responsible for serving files or directories.
-It should:
-
-		Build the correct filesystem path using the server’s and location’s 
-		root and the request’s path.
-
-		If the path is a directory, check:
-
-		If autoindex is enabled → generate and return an HTML directory listing.
-
-		Otherwise, try to serve the index file (from Location or Server).
-
-		If the file doesn’t exist → return a 404 error.
-
-		If the file exists but is not readable → return a 403 error.
-
-		If the file is valid → read its contents, set the proper Content-Type, and 
-		return it with status 200.
-*/
+// The static-file serving logic lives in StaticFiles.{hpp,cpp} and exposes
+// serveGetStatic / servePostStatic / serveDeleteStatic. RequestHandler will
+// delegate to them and, if they return a response, will send it.
 
 void RequestHandler::handleGet(Server& srv, Location& loc) {
-	(void)loc;
-	(void)srv;
-	std::string root = srv.getRoot();         // server root
-	std::string index = srv.getIndex();       // usually "index.html"
-	std::string fullPath = root + "/" + index;
-
-	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
-	if (!file) {
-		HttpResponse res(404, "<h1>404 Not Found</h1>");
-		res.setHeader("Content-Type", "text/html");
-		res.setHeader("Connection", "close");
-		sendResponse(res);
+	if (auto res = serveGetStatic(_request, srv, loc)) {
+		sendResponse(*res);
 		return;
 	}
-
-	Logger::log(DEBUG, std::string("return file: ") + fullPath);
-
-	std::ostringstream buffer;
-	buffer << file.rdbuf();
-	std::string body = buffer.str();
-
-	HttpResponse res(200, body);
-	res.setHeader("Content-Type", "text/html");
-	res.setHeader("Connection", "close");
-	sendResponse(res);
+	// If static handler didn't produce a response, fall back to an error for now.
+	sendResponse(makeErrorResponse(srv, 404));
 }
 
 /*
