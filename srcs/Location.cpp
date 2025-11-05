@@ -6,7 +6,10 @@ Location::Location()
 	_root(""),
 	_index("index.html"),
 	_autoindex(false),
-	_uploadPath("")
+	_uploadPath(""),
+	_hasReturn(false),
+	_returnCode(0),
+	_returnTarget("")
 {
 }
 
