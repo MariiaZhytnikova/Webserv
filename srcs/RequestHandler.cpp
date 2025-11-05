@@ -12,17 +12,24 @@ RequestHandler::RequestHandler(ServerManager& manager,
 						const std::string& rawRequest, int clientFd)
 	: _serverManager(manager),
 	_request(rawRequest),
-	_clientFd(clientFd) {}
+	_clientFd(clientFd),
+	_keepAlive(true) {}
 
 void RequestHandler::handle(int listenPort) {
 	Server& srv = matchServer(_request, listenPort);
 
 	try {
 		std::string sessionId = _request.getCookies("session_id");
+		std::string connection = _request.getHeader("Connection");
+
+		// 🔹 Close connection if server request it // NEED COMMIT
+		if (connection == "close")
+					_keepAlive = false;
 
 		// 🔹 If no cookie was sent, make a new one
 		if (sessionId.empty()) {
 			sessionId = Session::generateSessionId();
+			
 		}
 		Session& session = _serverManager.getSessionManager().getOrCreate(sessionId);
 		session.set("last_path", _request.getPath());
@@ -58,6 +65,22 @@ void RequestHandler::handle(int listenPort) {
 }
 
 bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
+
+	// 🔹 Headers check
+		std::string host = _request.getHeader("Host");
+		if (host.empty()) {
+			sendResponse(makeErrorResponse(srv, 400));
+			Logger::log(ERROR, std::string("bad equest: header 'Host:' missing"));
+			return false;
+		}
+
+		// std::string content = _request.getHeader("Content-Length");
+		// if (content.empty()) {
+		// 	sendResponse(makeErrorResponse(srv, 411));
+		// 	Logger::log(ERROR, std::string("bad request: Length Required"));
+		// 	return false;
+		// }
+
 	// 🔹 Body size check
 	if (_request.getBody().size() > srv.getClientMaxBodySize()) {
 		sendResponse(makeErrorResponse(srv, 413));
@@ -134,7 +157,11 @@ bool RequestHandler::isMethodAllowed(const std::vector<std::string>& allowed) co
 void RequestHandler::sendResponse(const HttpResponse& res) {
 	std::string serialized = res.serialize();
 	send(_clientFd, serialized.c_str(), serialized.size(), 0);
-	close(_clientFd);
+	// NEED COMMIT
+	if (_keepAlive == false) { // Close connection only if server request it
+		Logger::log(INFO, std::string("connection closed ") + std::to_string(_clientFd));
+		close(_clientFd);
+	}
 }
 
 HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
