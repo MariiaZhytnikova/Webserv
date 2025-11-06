@@ -1,6 +1,13 @@
 #include "ConfigParser.hpp"
 #include "ServerManager.hpp"
 #include "Logger.hpp"
+#include <csignal>
+
+bool g_running = true; // the only definition
+
+void handleSignal(int) {
+	g_running = false;
+}
 
 void PrintMe(const std::vector<Server>& servers) {
 	for (size_t i = 0; i < servers.size(); ++i) {
@@ -53,6 +60,8 @@ void PrintMe(const std::vector<Server>& servers) {
 
 int main(int argc, char **argv) {
 
+	signal(SIGINT, handleSignal);
+
 	Logger::init("./log/access.log", "./log/error.log");
 	Logger::log(INFO, "starting server...");
 	std::string config_path = "conf/default.conf";
@@ -73,6 +82,7 @@ int main(int argc, char **argv) {
 
 		// PrintMe(parser.getServers());
 		ServerManager manager(parser.getServers());
+		g_running = true;
 		manager.run();
 	}
 	catch (const std::exception& e) {

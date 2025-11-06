@@ -25,7 +25,7 @@ void RequestHandler::handle(int listenPort) {
 
 		// 🔹 Close connection if server request it // NEED COMMIT
 		if (connection == "close")
-					_keepAlive = false;
+			_keepAlive = false;
 
 		// 🔹 If no cookie was sent, make a new one
 		if (sessionId.empty()) {
@@ -68,7 +68,7 @@ void RequestHandler::handle(int listenPort) {
 bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 
 	// 🔹 Headers check
-		std::string host = _request.getHeader("Host");
+		std::string host = _request.getHeader("host");
 		if (host.empty()) {
 			sendResponse(makeErrorResponse(srv, 400));
 			Logger::log(ERROR, std::string("bad equest: header 'Host:' missing"));
@@ -122,7 +122,7 @@ bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 }
 
 Server& RequestHandler::matchServer(const HttpRequest& req, int listenPort) {
-	std::string host = req.getHeader("Host");
+	std::string host = req.getHeader("host");
 
 	// 🔹 Access servers via ServerManager
 	const std::vector<Server>& servers = _serverManager.getServers();
@@ -155,13 +155,34 @@ bool RequestHandler::isMethodAllowed(const std::vector<std::string>& allowed) co
 	return std::find(allowed.begin(), allowed.end(), _request.getMethod()) != allowed.end();
 }
 
-void RequestHandler::sendResponse(const HttpResponse& res) {
+void RequestHandler::sendResponse(const HttpResponse& other) {
+
+	HttpResponse res = other;
+
+	if (_keepAlive == false)
+		res.setHeader("Connection", "close");
+
 	std::string serialized = res.serialize();
-	send(_clientFd, serialized.c_str(), serialized.size(), 0);
-	// NEED COMMIT
-	if (_keepAlive == false) { // Close connection only if server request it
-		Logger::log(INFO, std::string("connection closed ") + std::to_string(_clientFd));
+	size_t totalSent = 0;
+	ssize_t sent;
+
+	Logger::log(DEBUG, std::string("response size: ") + std::to_string(serialized.size()));
+
+	while (totalSent < serialized.size()) {
+		sent = send(_clientFd, serialized.c_str() + totalSent,
+				serialized.size() - totalSent, 0);
+		if (sent <= 0) {
+			Logger::log(ERROR, "send() failed or connection closed early");
+			break;
+		}
+		totalSent += sent;
+		Logger::log(DEBUG, std::string("bytes sent: ") + std::to_string(totalSent));
+	}
+
+	if (!_keepAlive) {
+		Logger::log(INFO, "connection closed by client request" + std::to_string(_clientFd));
 		close(_clientFd);
+		_serverManager.cleanupClient(_clientFd);
 	}
 }
 
@@ -201,13 +222,59 @@ HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
 // serveGetStatic / servePostStatic / serveDeleteStatic. RequestHandler will
 // delegate to them and, if they return a response, will send it.
 
+// void RequestHandler::handleGet(Server& srv, Location& loc) {
+// 	if (auto res = serveGetStatic(_request, srv, loc)) {
+// 		sendResponse(*res);
+// 		return;
+// 	}
+// 	// If static handler didn't produce a response, fall back to an error for now.
+// 	sendResponse(makeErrorResponse(srv, 404));
+// }
+
 void RequestHandler::handleGet(Server& srv, Location& loc) {
-	if (auto res = serveGetStatic(_request, srv, loc)) {
-		sendResponse(*res);
+	(void)loc;
+	(void)srv;
+	std::string root = srv.getRoot();         // server root
+	std::string index = srv.getIndex();       // usually "index.html"
+	std::string fullPath;
+
+	if (_request.getPath() == "/")
+		fullPath = root + "/" + index;
+	else
+		fullPath = root + _request.getPath();
+
+	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
+	if (!file) {
+		HttpResponse res(404, "<h1>404 Not Found</h1>");
+		res.setHeader("Content-Type", "text/html");
+		sendResponse(res);
 		return;
 	}
-	// If static handler didn't produce a response, fall back to an error for now.
-	sendResponse(makeErrorResponse(srv, 404));
+
+	Logger::log(DEBUG, std::string("return file: ") + fullPath);
+
+	std::ostringstream buffer;
+	buffer << file.rdbuf();
+	std::string body = buffer.str();
+
+	HttpResponse res(200, body);
+
+	std::string contentType = "text/plain";
+	if (fullPath.find(".html") != std::string::npos)
+		contentType = "text/html";
+	else if (fullPath.find(".css") != std::string::npos)
+		contentType = "text/css";
+	else if (fullPath.find(".js") != std::string::npos)
+		contentType = "application/javascript";
+	else if (fullPath.find(".png") != std::string::npos)
+		contentType = "image/png";
+	else if (fullPath.find(".jpg") != std::string::npos || fullPath.find(".jpeg") != std::string::npos)
+		contentType = "image/jpeg";
+	else if (fullPath.find(".gif") != std::string::npos)
+		contentType = "image/gif";
+
+	res.setHeader("Content-Type", contentType);
+	sendResponse(res);
 }
 
 /*
@@ -234,7 +301,6 @@ void RequestHandler::handlePost(Server& srv, Location& loc) {
 	std::string body = "<h1>POST received</h1>";
 	HttpResponse res(200, body);
 	res.setHeader("Content-Type", "text/html");
-	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
 
@@ -260,6 +326,18 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	std::string body = "<h1>DELETE received</h1>";
 	HttpResponse res(200, body);
 	res.setHeader("Content-Type", "text/html");
-	res.setHeader("Connection", "close");
 	sendResponse(res);
 }
+
+/*
+remove all res.setHeader("Connection", "close");
+
+only in sendResponse(res);
+
+after close clean _clientToListenFd.erase(clientFd); _clientBuffers.erase(clientFd); fds.erase(fds.begin() + index); case I send res.setHeader("Connection", "close");
+
+
+		// _clientToListenFd.erase(clientFd);
+		// _clientBuffers.erase(clientFd);
+
+*/
