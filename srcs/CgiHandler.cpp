@@ -1,6 +1,8 @@
 #include "CgiHandler.hpp"
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
 
 CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
@@ -11,8 +13,10 @@ HttpResponse CgiHandler::execute(const std::string& scriptPath) {
 
 	// Parse CGI output: split headers from body
 	size_t headerSize = output.find("\r\n\r\n");
+	if (headerSize == std::string::npos)
+		headerSize = output.find("\n\n");
 	std::string headers = output.substr(0, headerSize);
-	std::string body = output.substr(headerSize + 4);
+	std::string body = output.substr(headerSize + ((output[headerSize] == '\r') ? 4 : 2));
 
 	HttpResponse res(200, body);
 	std::istringstream hs(headers);
@@ -53,6 +57,7 @@ std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scrip
 	env["REDIRECT_STATUS"] = "200"; // required for PHP-CGI
 
 	return env;
+
 }
 
 std::string CgiHandler::runProcess(const std::string& scriptPath, const std::map<std::string, std::string>& env) {
