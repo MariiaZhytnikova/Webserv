@@ -1,6 +1,7 @@
 #include "RequestHandler.hpp"
 #include "Session.hpp"
 #include "Logger.hpp"
+#include "CgiHandler.hpp"
 #include "StaticFiles.hpp"
 #include <algorithm>
 #include <unistd.h>
@@ -46,7 +47,14 @@ void RequestHandler::handle(int listenPort) {
 
 		// If extension matches a CGI handler in this location
 		if (loc.getCgiExtensions().count(ext)) {
-			// TO DO handleCgi(srv, loc, path ... ????????);
+			try {
+				CgiHandler cgi(_request);
+				HttpResponse res = cgi.execute(srv.getRoot() + path);
+				sendResponse(res);
+			} catch (const std::exception& e) {
+				Logger::log(ERROR, std::string("CGI execution failed: ") + e.what());
+				sendResponse(makeErrorResponse(srv, 500));
+			}
 			return;
 		}
 
