@@ -1,5 +1,6 @@
 #include "HttpRequest.hpp"
 #include "Logger.hpp"
+#include <algorithm>
 
 HttpRequest::HttpRequest(const std::string& raw) {
 	std::istringstream stream(raw);
@@ -28,6 +29,8 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 		size_t pos = line.find(':');
 		if (pos != std::string::npos) {
 			std::string key = line.substr(0, pos);
+			std::transform(key.begin(), key.end(), key.begin(),
+				[](unsigned char c){ return std::tolower(c); });
 			std::string value = line.substr(pos + 1);
 			while (!value.empty() && value[0] == ' ')
 				value.erase(0, 1);
@@ -35,7 +38,10 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 		}
 	}
 
-	std::map<std::string, std::string>::iterator it = _headers.find("Cookie");
+	for (auto &pairs : _headers)
+		Logger::log(TRACE, pairs.first + " : " + pairs.second);
+
+	std::map<std::string, std::string>::iterator it = _headers.find("cookie");
 	if (it != _headers.end())
 		parseCookies(it->second);
 }

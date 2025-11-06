@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #include <algorithm>
 
+extern bool g_running;
+
 ServerManager::ServerManager(const std::vector<Server>& servers)
 	: _servers(servers), _sessionManager() { }
 
@@ -52,10 +54,11 @@ void ServerManager::setupSockets() {
 		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
 			throw std::runtime_error("failed to setsockopt: " + std::string(strerror(errno)));
 		// Make socket non-blocking
-		fcntl(sock, F_SETFL, O_NONBLOCK);
-
+		if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
+			throw std::runtime_error("failed to set non-blocking: " + std::string(strerror(errno)));
 		// Make socket close-on-exec
-		fcntl(sock, F_SETFD, FD_CLOEXEC);
+		if (fcntl(sock, F_SETFD, FD_CLOEXEC) == -1)
+			throw std::runtime_error("failed to set close-on-exec: " + std::string(strerror(errno)));
 
 /*  ----- bind()/listen() -----
 	from <netinet/in.h>
@@ -122,11 +125,11 @@ poll() - system call that allows your program to wait for activity on
 */
 
 
-void ServerManager::acceptNewClient(int listenFd, std::vector<pollfd>& fds) {
+void ServerManager::acceptNewClient(int listenFd) {
 	sockaddr_in clientAddr;
 	socklen_t addrLen = sizeof(clientAddr);
-	int clientSock = accept(listenFd, (struct sockaddr*)&clientAddr, &addrLen);
-	if (clientSock < 0) {
+	int clientFd = accept(listenFd, (struct sockaddr*)&clientAddr, &addrLen);
+	if (clientFd < 0) {
 		Logger::log(ERROR, "failed to accept new client connection: " + std::string(strerror(errno)));
 		return;
 	}
@@ -137,29 +140,42 @@ void ServerManager::acceptNewClient(int listenFd, std::vector<pollfd>& fds) {
 	Logger::log(INFO, "accepted connection from " +
 						std::string(clientIP) + ":" +
 						std::to_string(clientPort));
-	fcntl(clientSock, F_SETFL, O_NONBLOCK);
+	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) == -1) {
+		Logger::log(ERROR, "failed to set client socket non-blocking: " + std::string(strerror(errno)));
+		close(clientFd);
+		return;
+	}
 
 	// Add to poll and client buffer map
-	fds.push_back({ clientSock, POLLIN, 0 });
-	_clientBuffers[clientSock] = "";
+	_fds.push_back({ clientFd, POLLIN, 0 });
+	_clientBuffers[clientFd] = "";
 	// Track which listenFd spawned this client
-	_clientToListenFd[clientSock] = listenFd;
+	_clientToListenFd[clientFd] = listenFd;
 }
 
 
-void ServerManager::readFromClient(int clientFd, std::vector<pollfd>& fds, size_t index) {
+void ServerManager::readFromClient(int clientFd, size_t index) {
 	char buffer[4096];
 	ssize_t bytes = read(clientFd, buffer, sizeof(buffer));
 
-	if (bytes <= 0) {
-		if (bytes == 0)
-			Logger::log(INFO, "client disconnected: fd=" + std::to_string(clientFd));
-		else
-			Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
-								   ": " + std::string(strerror(errno)));
+	if (bytes < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			Logger::log(DEBUG, "waiting for request...");
+			return;
+		}
+		Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
+						   ": " + std::string(strerror(errno)));
 		close(clientFd);
 		_clientBuffers.erase(clientFd);
-		fds.erase(fds.begin() + index);
+		_fds.erase(_fds.begin() + index);
+		return;
+	}
+
+	if (bytes == 0) {
+		Logger::log(INFO, "client disconnected due to inactivity: fd=" + std::to_string(clientFd));
+		close(clientFd);
+		_clientBuffers.erase(clientFd);
+		_fds.erase(_fds.begin() + index);
 		return;
 	}
 
@@ -168,32 +184,28 @@ void ServerManager::readFromClient(int clientFd, std::vector<pollfd>& fds, size_
 						" bytes from fd=" + std::to_string(clientFd));
 
 
-	if (_clientBuffers[clientFd].find("\r\n\r\n") != std::string::npos) {
+	while (_clientBuffers[clientFd].find("\r\n\r\n") != std::string::npos) {
 		Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
 		handleRequest(clientFd);
-		fds.erase(fds.begin() + index); // remove client from poll
-	} else {
-		// Still receiving — do nothing
-		Logger::log(DEBUG, "partial request, waiting for more data on fd=" +
-						std::to_string(clientFd));
+		size_t pos = _clientBuffers[clientFd].find("\r\n\r\n") + 4;
+		_clientBuffers[clientFd].erase(0, pos);
 	}
 }
 
 void ServerManager::handleRequest(int clientFd) {
 	try {
 		std::string raw = _clientBuffers[clientFd];
-		_clientBuffers.erase(clientFd);
 
-		//HttpRequest request(raw);
 		int listenFd = _clientToListenFd[clientFd];
 		int listenPort = _portSocketMap[listenFd];
-		_clientToListenFd.erase(clientFd);
 
 		RequestHandler handler(*this, raw, clientFd);
 		handler.handle(listenPort);
 	}
 	catch (const std::exception& e) {
 		Logger::log(ERROR, std::string("request error: ") + e.what());
+		close(clientFd);
+		_clientBuffers.erase(clientFd);
 	}
 }
 
@@ -201,17 +213,17 @@ void ServerManager::handleRequest(int clientFd) {
 void ServerManager::run() {
 	setupSockets();
 
-	std::vector<struct pollfd> fds;
+	// std::vector<struct pollfd> fds;
 
 	// Add all listening sockets to poll
 	for (std::map<int,int>::iterator it = _portSocketMap.begin();
 		it != _portSocketMap.end(); ++it) {
-		fds.push_back({ it->first, POLLIN, 0 });
+		_fds.push_back({ it->first, POLLIN, 0 });
 	}
 
 	// vector::data() returns a raw pointer to the internal array of elements
-	while (true) {
-		int ret = poll(fds.data(), fds.size(), -1); // -1 = wait forever
+	while (g_running) {
+		int ret = poll(_fds.data(), _fds.size(), -1); // -1 = wait forever
 		if (ret < 0) {
 			if (errno == EINTR) {
 				Logger::log(INFO, "poll interrupted, continuing...");
@@ -220,15 +232,37 @@ void ServerManager::run() {
 			Logger::log(ERROR, "poll() failed: " + std::string(strerror(errno)));
 			break;
 		}
-		for (size_t i = 0; i < fds.size(); ++i) {
+		for (size_t i = 0; i < _fds.size(); ++i) {
 			// true if there is data to read on this fd
-			if (fds[i].revents & POLLIN) {
-				if (_portSocketMap.count(fds[i].fd)) {
-					acceptNewClient(fds[i].fd, fds);
+			if (_fds[i].revents & POLLIN) {
+				if (_portSocketMap.count(_fds[i].fd)) {
+					acceptNewClient(_fds[i].fd);
 				} else {
-					readFromClient(fds[i].fd, fds, i);
+					readFromClient(_fds[i].fd, i);
 				}
 			}
 		}
 	}
+
+	for (auto& pair : _portSocketMap)
+		close(pair.first); // socket fd
+
+	for (auto& client : _clientToListenFd)
+		close(client.first); // client fd
+
+	Logger::log(INFO, "Server shutting down...");
+}
+
+void ServerManager::cleanupClient(int clientFd) {
+	_clientBuffers.erase(clientFd);
+	_clientToListenFd.erase(clientFd);
+
+	for (size_t i = 0; i < _fds.size(); ++i) {
+		if (_fds[i].fd == clientFd) {
+			_fds.erase(_fds.begin() + i);
+			break;
+		}
+	}
+
+	Logger::log(DEBUG, "cleaned up client fd=" + std::to_string(clientFd));
 }
