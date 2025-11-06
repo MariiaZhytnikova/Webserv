@@ -184,7 +184,7 @@ void ServerManager::handleRequest(int clientFd) {
 		std::string raw = _clientBuffers[clientFd];
 		_clientBuffers.erase(clientFd);
 
-		HttpRequest request(raw);
+		//HttpRequest request(raw);
 		int listenFd = _clientToListenFd[clientFd];
 		int listenPort = _portSocketMap[listenFd];
 		_clientToListenFd.erase(clientFd);
