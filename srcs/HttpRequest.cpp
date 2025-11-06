@@ -1,4 +1,5 @@
 #include "HttpRequest.hpp"
+#include "Logger.hpp"
 
 HttpRequest::HttpRequest(const std::string& raw) {
 	std::istringstream stream(raw);
@@ -16,6 +17,7 @@ void HttpRequest::parseRequestLine(std::istringstream& stream) {
 	std::istringstream firstLine(line);
 	firstLine >> _method >> _path >> _version;
 	if (_path.empty()) _path = "/";
+	Logger::log(DEBUG, std::string("path in request:") + _path);
 }
 
 void HttpRequest::parseHeaders(std::istringstream& stream) {
