@@ -68,7 +68,6 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 	if (stat(fullPath.c_str(), &st) != 0) {
 		Logger::log(ERROR, std::string("404 Not Found 1") + req.getPath());
 		HttpResponse response = handler.makeErrorResponse(serv, 404);
-		Logger::log(TRACE, response.getMSG() + response.getCode());
 		return handler.makeErrorResponse(serv, 404);
 	}
 
