@@ -22,7 +22,7 @@ void RequestHandler::handle(int listenPort) {
 
 	try {
 		std::string sessionId = _request.getCookies("session_id");
-		std::string connection = _request.getHeader("Connection");
+		std::string connection = _request.getHeader("connection");
 
 		// 🔹 Close connection if server request it // NEED COMMIT
 		if (connection == "close")
@@ -47,15 +47,10 @@ void RequestHandler::handle(int listenPort) {
 
 		// If extension matches a CGI handler in this location
 		if (loc.getCgiExtensions().count(ext)) {
-			try {
-				CgiHandler cgi(_request);
-				HttpResponse res = cgi.execute(srv.getRoot() + path);
-				sendResponse(res);
-			} catch (const std::exception& e) {
-				Logger::log(ERROR, std::string("CGI execution failed: ") + e.what());
-				sendResponse(makeErrorResponse(srv, 500));
-			}
-			return;
+			CgiHandler cgi(_request);
+			HttpResponse res = cgi.execute(srv.getRoot() + path);
+			sendResponse(res);
+			// Logger::log(ERROR, std::string("CGI execution failed: ") + e.what());
 		}
 
 		// 🔹 Dispatch to correct handler
@@ -76,19 +71,8 @@ void RequestHandler::handle(int listenPort) {
 bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 
 	// 🔹 Headers check
-		std::string host = _request.getHeader("host");
-		if (host.empty()) {
-			sendResponse(makeErrorResponse(srv, 400));
-			Logger::log(ERROR, std::string("bad equest: header 'Host:' missing"));
-			return false;
-		}
-
-		// std::string content = _request.getHeader("Content-Length");
-		// if (content.empty()) {
-		// 	sendResponse(makeErrorResponse(srv, 411));
-		// 	Logger::log(ERROR, std::string("bad request: Length Required"));
-		// 	return false;
-		// }
+	if (!checkHeaders(srv))
+		return false;
 
 	// 🔹 Body size check
 	if (_request.getBody().size() > srv.getClientMaxBodySize()) {
@@ -126,6 +110,33 @@ bool RequestHandler::preCheckRequest(Server& srv, Location& loc) {
 		Logger::log(ERROR, std::string("fobidden path: ") + _request.getPath());
 		return false;
 	}
+	return true;
+}
+
+bool RequestHandler::checkHeaders(Server& srv) {
+
+	// 🔹 Malformed header
+	std::string str = _request.getHeader("malformed");
+	if (!str.empty()) {
+		sendResponse(makeErrorResponse(srv, 400));
+		Logger::log(ERROR, std::string("400 bad request: malformed header"));
+		return false;
+	}
+
+	// 🔹 Duplicate Host header
+	auto range = _request.getHeaders().equal_range("host");
+	if (std::distance(range.first, range.second) != 1) {
+		sendResponse(makeErrorResponse(srv, 400));
+		Logger::log(ERROR, std::string("400 bad request: invalid host header count"));
+		return false;
+	}
+
+	// std::string content = _request.getHeader("Content-Length");
+	// if (content.empty()) {
+	// 	sendResponse(makeErrorResponse(srv, 411));
+	// 	Logger::log(ERROR, std::string("bad request: Length Required"));
+	// 	return false;
+	// }
 	return true;
 }
 
@@ -188,13 +199,13 @@ void RequestHandler::sendResponse(const HttpResponse& other) {
 	}
 
 	if (!_keepAlive) {
-		Logger::log(INFO, "connection closed by client request" + std::to_string(_clientFd));
+		Logger::log(INFO, "connection closed by client request fd=" + std::to_string(_clientFd));
 		close(_clientFd);
 		_serverManager.cleanupClient(_clientFd);
 	}
 }
 
-HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
+HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
 	std::string filePath;
 
 	// 🔹  Check if server has custom error page
@@ -238,52 +249,6 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 	// If static handler didn't produce a response, fall back to an error for now.
 	sendResponse(makeErrorResponse(srv, 404));
 }
-
-// void RequestHandler::handleGet(Server& srv, Location& loc) {
-// 	(void)loc;
-// 	(void)srv;
-// 	std::string root = srv.getRoot();         // server root
-// 	std::string index = srv.getIndex();       // usually "index.html"
-// 	std::string fullPath;
-
-// 	if (_request.getPath() == "/")
-// 		fullPath = root + "/" + index;
-// 	else
-// 		fullPath = root + _request.getPath();
-
-// 	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
-// 	if (!file) {
-// 		HttpResponse res(404, "<h1>404 Not Found</h1>");
-// 		res.setHeader("Content-Type", "text/html");
-// 		sendResponse(res);
-// 		return;
-// 	}
-
-// 	Logger::log(DEBUG, std::string("return file: ") + fullPath);
-
-// 	std::ostringstream buffer;
-// 	buffer << file.rdbuf();
-// 	std::string body = buffer.str();
-
-// 	HttpResponse res(200, body);
-
-// 	std::string contentType = "text/plain";
-// 	if (fullPath.find(".html") != std::string::npos)
-// 		contentType = "text/html";
-// 	else if (fullPath.find(".css") != std::string::npos)
-// 		contentType = "text/css";
-// 	else if (fullPath.find(".js") != std::string::npos)
-// 		contentType = "application/javascript";
-// 	else if (fullPath.find(".png") != std::string::npos)
-// 		contentType = "image/png";
-// 	else if (fullPath.find(".jpg") != std::string::npos || fullPath.find(".jpeg") != std::string::npos)
-// 		contentType = "image/jpeg";
-// 	else if (fullPath.find(".gif") != std::string::npos)
-// 		contentType = "image/gif";
-
-// 	res.setHeader("Content-Type", contentType);
-// 	sendResponse(res);
-// }
 
 /*
 This one handles uploads or form submissions.

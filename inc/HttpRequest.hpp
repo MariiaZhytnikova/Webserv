@@ -34,7 +34,7 @@ class HttpRequest {
 		std::string _path;
 		std::string _version;
 		std::string _body;
-		std::map<std::string, std::string> _headers;
+		std::multimap<std::string, std::string> _headers;
 		std::map<std::string, std::string> _cookies;
 
 		void parseRequestLine(std::istringstream& stream);
@@ -53,7 +53,7 @@ class HttpRequest {
 		const std::string&	getPath() const;
 		const std::string&	getVersion() const;
 		std::string			getHeader(const std::string& key) const;
-		const std::map<std::string, std::string>& getHeaders() const;
+		const std::multimap<std::string, std::string>& getHeaders() const;
 		const std::string&	getBody() const;
 		const std::string&	getCookies(const std::string& which) const;
 };

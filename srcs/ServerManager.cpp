@@ -209,7 +209,6 @@ void ServerManager::handleRequest(int clientFd) {
 	}
 }
 
-
 void ServerManager::run() {
 	setupSockets();
 
