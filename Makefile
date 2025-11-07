@@ -13,6 +13,7 @@ CC := c++
 CFLAGS := -Wall -Wextra -Werror -std=c++20 -pedantic -I$(INC_DIR)
 
 all: $(NAME)
+	./webServ
 
 $(NAME): $(OBJ) $(LOG_DIR)
 	$(CC) $(CFLAGS) $(OBJ) -o $(NAME)

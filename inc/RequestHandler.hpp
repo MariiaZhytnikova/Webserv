@@ -36,6 +36,7 @@ private:
 
 	HttpMethod getMethod() const;
 	bool preCheckRequest(Server& srv, Location& loc);
+	bool checkHeaders(Server& srv);
 	bool isMethodAllowed(const std::vector<std::string>& allowed) const;
 	void sendResponse(const HttpResponse& res);
 	
@@ -46,7 +47,7 @@ private:
 
 public:
 	RequestHandler(ServerManager& manager, const std::string& rawRequest, int clientFd);
-	HttpResponse makeErrorResponse(Server& srv, int code);
+	HttpResponse makeErrorResponse(const Server& srv, int code);
 	void handle(int listenPort);
 };
 

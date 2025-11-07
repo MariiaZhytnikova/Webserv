@@ -26,24 +26,57 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 	while (std::getline(stream, line) && line != "\r") {
 		if (!line.empty() && line.back() == '\r')
 			line.pop_back();
+
 		size_t pos = line.find(':');
 		if (pos != std::string::npos) {
+
+			// 🔹 Check key for forbidden characters
 			std::string key = line.substr(0, pos);
 			std::transform(key.begin(), key.end(), key.begin(),
 				[](unsigned char c){ return std::tolower(c); });
+			if (key.empty()
+				|| key.find(' ') != std::string::npos
+				|| key.find_first_not_of(
+					"!#$%&'*+-.^_`|~0123456789"
+					"abcdefghijklmnopqrstuvwxyz"
+					"ABCDEFGHIJKLMNOPQRSTUVWXYZ") != std::string::npos)
+			{
+				_headers.insert(std::make_pair("malformed", line));
+				continue;
+			}
+
+			// 🔹 Check value for forbidden characters
 			std::string value = line.substr(pos + 1);
 			while (!value.empty() && value[0] == ' ')
 				value.erase(0, 1);
-			_headers[key] = value;
+			bool valueMalformed = false;
+			for (size_t i = 0; i < value.size(); ++i) {
+				unsigned char c = value[i];
+				if ((c < 32 && c != '\t') || c == 127) {
+					valueMalformed = true;
+					break;
+				}
+			}
+			if (valueMalformed) {
+				_headers.insert(std::make_pair("malformed", line));
+				continue;
+			}
+			_headers.insert(std::make_pair(key, value));
+
+		} else {
+
+			// 🔹 No colon found
+			_headers.insert(std::make_pair("malformed", line));
 		}
 	}
 
 	for (auto &pairs : _headers)
 		Logger::log(TRACE, pairs.first + " : " + pairs.second);
 
-	std::map<std::string, std::string>::iterator it = _headers.find("cookie");
-	if (it != _headers.end())
+	auto range = _headers.equal_range("cookie");
+	for (auto it = range.first; it != range.second; ++it) {
 		parseCookies(it->second);
+	}
 }
 
 void HttpRequest::parseCookies(const std::string& cookieStr) {
@@ -86,7 +119,7 @@ std::string HttpRequest::getHeader(const std::string& key) const {
 const std::string& HttpRequest::getMethod() const { return _method; }
 const std::string& HttpRequest::getPath() const { return _path; }
 const std::string& HttpRequest::getVersion() const { return _version; }
-const std::map<std::string, std::string>& HttpRequest::getHeaders() const { return _headers; }
+const std::multimap<std::string, std::string>& HttpRequest::getHeaders() const { return _headers; }
 const std::string& HttpRequest::getBody() const { return _body; }
 
 const std::string& HttpRequest::getCookies(const std::string& which) const {
