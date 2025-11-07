@@ -35,6 +35,7 @@ static std::string detectMime(const std::string& path) {
 }
 
 std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server& srv, const Location& loc, RequestHandler& handler) {
+	Server serv = srv;
 	std::string reqPath = req.getPath();
 	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
 	if (baseRoot.empty()) baseRoot = "./www";
@@ -57,14 +58,18 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 	}
 
 	// cheap traversal guard; consider realpath for production
-	if (fullPath.find("..") != std::string::npos) {
-		Logger::log(ERROR, std::string("forbidden path: ") + req.getPath());
-		return HttpResponse(403, "<h1>403 Forbidden</h1>");
-	}
+	// if (fullPath.find("..") != std::string::npos) {
+	// 	Logger::log(ERROR, std::string("forbidden path: ") + req.getPath());
+	// 	Logger::log(INFO, "Returning 404 page: " + req.getPath());
+	// 	return handler.makeErrorResponse(srv, 403);
+	// }
 
 	struct stat st;
 	if (stat(fullPath.c_str(), &st) != 0) {
-		return HttpResponse(404, "<h1>404 Not Found</h1>");
+		Logger::log(ERROR, std::string("404 Not Found 1") + req.getPath());
+		HttpResponse response = handler.makeErrorResponse(serv, 404);
+		Logger::log(TRACE, response.getMSG() + response.getCode());
+		return handler.makeErrorResponse(serv, 404);
 	}
 
 	if (S_ISDIR(st.st_mode)) {
@@ -77,7 +82,10 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 			fullPath = indexPath;
 		} else if (loc.getAutoindex() || srv.getAutoindex()) {
 			DIR* dir = opendir(fullPath.c_str());
-			if (!dir) return HttpResponse(403, "<h1>403 Forbidden</h1>");
+			if (!dir) {
+				Logger::log(ERROR, std::string("forbidden path: ") + req.getPath());
+				return handler.makeErrorResponse(serv, 403);
+			}
 			std::ostringstream html;
 			html << "<html><head><meta charset=\"utf-8\"><title>Index of " << req.getPath() << "</title></head><body>";
 			html << "<h1>Index of " << req.getPath() << "</h1><ul>";
@@ -98,16 +106,16 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 			res.setHeader("Content-Length", std::to_string(body.size()));
 			return res;
 		} else {
-			//return HttpResponse(404, "<h1>404 Not Found</h1>");
-			Server serv = srv;
-			Logger::log(ERROR, std::string("404 Not Found") + fullPath);
+			
+			Logger::log(ERROR, std::string("404 Not Found 2") + fullPath);
 			return handler.makeErrorResponse(serv, 404);
 		}
 	}
 
 	std::string body;
 	if (!readFile(fullPath, body)) {
-		return HttpResponse(403, "<h1>403 Forbidden</h1>");
+		Logger::log(ERROR, std::string("403 Forbidden") + fullPath);
+		return handler.makeErrorResponse(serv, 403);
 	}
 
 	HttpResponse res(200, body);
