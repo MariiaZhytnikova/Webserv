@@ -38,8 +38,7 @@ private:
 	bool preCheckRequest(Server& srv, Location& loc);
 	bool isMethodAllowed(const std::vector<std::string>& allowed) const;
 	void sendResponse(const HttpResponse& res);
-	HttpResponse makeErrorResponse(Server& srv, int code);
-
+	
 	Server& matchServer(const HttpRequest& req, int listenPort);
 	void handleGet(Server& srv, Location& loc);
 	void handlePost(Server& srv, Location& loc);
@@ -47,6 +46,7 @@ private:
 
 public:
 	RequestHandler(ServerManager& manager, const std::string& rawRequest, int clientFd);
+	HttpResponse makeErrorResponse(Server& srv, int code);
 	void handle(int listenPort);
 };
 

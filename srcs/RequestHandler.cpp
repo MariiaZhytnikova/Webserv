@@ -230,60 +230,60 @@ HttpResponse RequestHandler::makeErrorResponse(Server& srv, int code) {
 // serveGetStatic / servePostStatic / serveDeleteStatic. RequestHandler will
 // delegate to them and, if they return a response, will send it.
 
-// void RequestHandler::handleGet(Server& srv, Location& loc) {
-// 	if (auto res = serveGetStatic(_request, srv, loc)) {
-// 		sendResponse(*res);
-// 		return;
-// 	}
-// 	// If static handler didn't produce a response, fall back to an error for now.
-// 	sendResponse(makeErrorResponse(srv, 404));
-// }
-
 void RequestHandler::handleGet(Server& srv, Location& loc) {
-	(void)loc;
-	(void)srv;
-	std::string root = srv.getRoot();         // server root
-	std::string index = srv.getIndex();       // usually "index.html"
-	std::string fullPath;
-
-	if (_request.getPath() == "/")
-		fullPath = root + "/" + index;
-	else
-		fullPath = root + _request.getPath();
-
-	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
-	if (!file) {
-		HttpResponse res(404, "<h1>404 Not Found</h1>");
-		res.setHeader("Content-Type", "text/html");
-		sendResponse(res);
+	if (auto res = serveGetStatic(_request, srv, loc, *this)) {
+		sendResponse(*res);
 		return;
 	}
-
-	Logger::log(DEBUG, std::string("return file: ") + fullPath);
-
-	std::ostringstream buffer;
-	buffer << file.rdbuf();
-	std::string body = buffer.str();
-
-	HttpResponse res(200, body);
-
-	std::string contentType = "text/plain";
-	if (fullPath.find(".html") != std::string::npos)
-		contentType = "text/html";
-	else if (fullPath.find(".css") != std::string::npos)
-		contentType = "text/css";
-	else if (fullPath.find(".js") != std::string::npos)
-		contentType = "application/javascript";
-	else if (fullPath.find(".png") != std::string::npos)
-		contentType = "image/png";
-	else if (fullPath.find(".jpg") != std::string::npos || fullPath.find(".jpeg") != std::string::npos)
-		contentType = "image/jpeg";
-	else if (fullPath.find(".gif") != std::string::npos)
-		contentType = "image/gif";
-
-	res.setHeader("Content-Type", contentType);
-	sendResponse(res);
+	// If static handler didn't produce a response, fall back to an error for now.
+	sendResponse(makeErrorResponse(srv, 404));
 }
+
+// void RequestHandler::handleGet(Server& srv, Location& loc) {
+// 	(void)loc;
+// 	(void)srv;
+// 	std::string root = srv.getRoot();         // server root
+// 	std::string index = srv.getIndex();       // usually "index.html"
+// 	std::string fullPath;
+
+// 	if (_request.getPath() == "/")
+// 		fullPath = root + "/" + index;
+// 	else
+// 		fullPath = root + _request.getPath();
+
+// 	std::ifstream file(fullPath.c_str(), std::ios::in | std::ios::binary);
+// 	if (!file) {
+// 		HttpResponse res(404, "<h1>404 Not Found</h1>");
+// 		res.setHeader("Content-Type", "text/html");
+// 		sendResponse(res);
+// 		return;
+// 	}
+
+// 	Logger::log(DEBUG, std::string("return file: ") + fullPath);
+
+// 	std::ostringstream buffer;
+// 	buffer << file.rdbuf();
+// 	std::string body = buffer.str();
+
+// 	HttpResponse res(200, body);
+
+// 	std::string contentType = "text/plain";
+// 	if (fullPath.find(".html") != std::string::npos)
+// 		contentType = "text/html";
+// 	else if (fullPath.find(".css") != std::string::npos)
+// 		contentType = "text/css";
+// 	else if (fullPath.find(".js") != std::string::npos)
+// 		contentType = "application/javascript";
+// 	else if (fullPath.find(".png") != std::string::npos)
+// 		contentType = "image/png";
+// 	else if (fullPath.find(".jpg") != std::string::npos || fullPath.find(".jpeg") != std::string::npos)
+// 		contentType = "image/jpeg";
+// 	else if (fullPath.find(".gif") != std::string::npos)
+// 		contentType = "image/gif";
+
+// 	res.setHeader("Content-Type", contentType);
+// 	sendResponse(res);
+// }
 
 /*
 This one handles uploads or form submissions.
