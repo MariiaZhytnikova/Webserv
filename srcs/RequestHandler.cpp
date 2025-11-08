@@ -205,79 +205,52 @@ void RequestHandler::sendResponse(const HttpResponse& other) {
 	}
 }
 
-// HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
-// 	std::string filePath;
-
-// 	// 🔹  Check if server has custom error page
-// 	auto it = srv.getErrorPages().find(code);
-// 	if (it != srv.getErrorPages().end()) {
-// 		filePath = srv.getRoot() + "/" + it->second; // combine root + relative path
-
-// 	} else {
-// 	// 🔹  Fallback default error folder
-// 		filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
-// 	}
-// 	std::ifstream file(filePath.c_str());
-// 	std::ostringstream buffer;
-
-// 	if (file.is_open()) {
-// 		buffer << file.rdbuf();
-// 		file.close();
-// 	} 
-// 	if (buffer.str().empty()) {
-// 	// 🔹  Minimal inline fallback
-// 		buffer << "<html><body><h1>" << code << " "
-// 				<< HttpResponse::statusMessageForCode(code)
-// 				<< "</h1></body></html>";
-// 	}
-// 	std::string body = buffer.str();
-// 	Logger::log(INFO, "makeErrorResponse body size = " + std::to_string(body.size()));
-// 	HttpResponse res(code, body);
-// 	res.setHeader("Content-Type", "text/html");
-// 	res.setHeader("Content-Length", std::to_string(body.size()));
-	
-// 	return res;
-// }
 HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
-    std::string filePath;
+  
+	std::string filePath;
+	// 🔹  Check if server has custom error page
+	auto it = srv.getErrorPages().find(code);
+	if (it != srv.getErrorPages().end())
+		filePath = srv.getRoot() + "/" + it->second;
+	else
+	// 🔹  Fallback default error folder
+		filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
 
-    auto it = srv.getErrorPages().find(code);
-    if (it != srv.getErrorPages().end())
-        filePath = srv.getRoot() + "/" + it->second;
-    else
-        filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
+	std::ifstream file(filePath.c_str(), std::ios::binary);
+	std::ostringstream buffer;
+	// 🔹 check if file exist and not epmty
+	if (file.good()) {
+		std::ostringstream tmp;
+		tmp << file.rdbuf();
+		std::string content = tmp.str();
 
-    std::ifstream file(filePath.c_str());
-    std::ostringstream buffer;
-
-    if (file.is_open()) {
-        buffer << file.rdbuf();
-        file.close();
-    }
-
-    // 🔹 if file missing OR empty → fallback inline page
-	if (!file.is_open() || buffer.str().empty()) {
-		Logger::log(INFO, "Fallback error page triggered");
-		std::ostringstream fb;
-		fb << "<html><body><h1>" << code << " "
-		<< HttpResponse::statusMessageForCode(code)
-		<< "</h1></body></html>";
-		buffer.str(fb.str());
+	// check html exists
+		if (!content.empty() &&
+			(content.find("<html") != std::string::npos ||
+			content.find("<body") != std::string::npos)) {
+			buffer.str(content);
+			Logger::log(INFO, "Custom HTML error page used: " + filePath);
+		} else {
+			Logger::log(WARNING, "Invalid error page content, using fallback");
+		}
 	}
-
-    std::string body = buffer.str();
-    Logger::log(INFO, "makeErrorResponse body size = " + std::to_string(body.size()));
-
-    HttpResponse res(code, body);
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Content-Length", std::to_string(body.size()));
-    return res;
+	if (buffer.str().empty()) {
+	// 🔹  Minimal inline fallback
+		Logger::log(INFO, "Fallback error page triggered");
+		buffer.str("");
+		buffer << "<html><body><h1>" << code << " "
+			<< HttpResponse::statusMessageForCode(code)
+			<< "</h1></body></html>";
+	}
+	std::string body = buffer.str();
+	HttpResponse res(code, body);
+	res.setHeader("Content-Type", "text/html");
+	res.setHeader("Content-Length", std::to_string(body.size()));
+	return res;
 }
 
-// The static-file serving logic lives in StaticFiles.{hpp,cpp} and exposes
-// serveGetStatic / servePostStatic / serveDeleteStatic. RequestHandler will
-// delegate to them and, if they return a response, will send it.
 
+// GET, POST, DELETE methods
 void RequestHandler::handleGet(Server& srv, Location& loc) {
 	if (auto res = serveGetStatic(_request, srv, loc, *this)) {
 		sendResponse(*res);
@@ -286,23 +259,6 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 	// If static handler didn't produce a response, fall back to an error for now.
 	sendResponse(makeErrorResponse(srv, 404));
 }
-
-/*
-This one handles uploads or form submissions.
-It should:
-
-		If upload_path is defined in the Location, save the body of the request as a new file 
-		there and respond with status 201 (Created).
-
-		If the path corresponds to a CGI script, execute the CGI program and return its output 
-		as the response.
-
-		If neither applies, simply acknowledge the POST request (for example, returning a 
-		confirmation page or echoing the data).
-
-		If the body exceeds client_max_body_size, that error should already have been caught 
-		before reaching this point.
-*/
 
 void RequestHandler::handlePost(Server& srv, Location& loc) {
 	(void)loc;
@@ -314,21 +270,6 @@ void RequestHandler::handlePost(Server& srv, Location& loc) {
 	sendResponse(res);
 }
 
-/*
-This function manages resource deletion.
-It should:
-
-		Build the full filesystem path for the requested file.
-
-		If the file doesn’t exist → return a 404 error.
-
-		If the file exists but the process lacks permission to delete it → return a 403 error.
-
-		If deletion succeeds → return a 204 (No Content) response.
-
-		(Optionally) Prevent deleting outside of allowed directories (security check).
-*/
-
 void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	// TODO: implement deleting file/resource
 	(void)loc;
@@ -338,16 +279,3 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	res.setHeader("Content-Type", "text/html");
 	sendResponse(res);
 }
-
-/*
-remove all res.setHeader("Connection", "close");
-
-only in sendResponse(res);
-
-after close clean _clientToListenFd.erase(clientFd); _clientBuffers.erase(clientFd); fds.erase(fds.begin() + index); case I send res.setHeader("Connection", "close");
-
-
-		// _clientToListenFd.erase(clientFd);
-		// _clientBuffers.erase(clientFd);
-
-*/
