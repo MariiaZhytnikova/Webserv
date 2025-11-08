@@ -205,36 +205,73 @@ void RequestHandler::sendResponse(const HttpResponse& other) {
 	}
 }
 
+// HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
+// 	std::string filePath;
+
+// 	// 🔹  Check if server has custom error page
+// 	auto it = srv.getErrorPages().find(code);
+// 	if (it != srv.getErrorPages().end()) {
+// 		filePath = srv.getRoot() + "/" + it->second; // combine root + relative path
+
+// 	} else {
+// 	// 🔹  Fallback default error folder
+// 		filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
+// 	}
+// 	std::ifstream file(filePath.c_str());
+// 	std::ostringstream buffer;
+
+// 	if (file.is_open()) {
+// 		buffer << file.rdbuf();
+// 		file.close();
+// 	} 
+// 	if (buffer.str().empty()) {
+// 	// 🔹  Minimal inline fallback
+// 		buffer << "<html><body><h1>" << code << " "
+// 				<< HttpResponse::statusMessageForCode(code)
+// 				<< "</h1></body></html>";
+// 	}
+// 	std::string body = buffer.str();
+// 	Logger::log(INFO, "makeErrorResponse body size = " + std::to_string(body.size()));
+// 	HttpResponse res(code, body);
+// 	res.setHeader("Content-Type", "text/html");
+// 	res.setHeader("Content-Length", std::to_string(body.size()));
+	
+// 	return res;
+// }
 HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
-	std::string filePath;
+    std::string filePath;
 
-	// 🔹  Check if server has custom error page
-	auto it = srv.getErrorPages().find(code);
-	if (it != srv.getErrorPages().end()) {
-		filePath = srv.getRoot() + "/" + it->second; // combine root + relative path
-	} else {
-	// 🔹  Fallback default error folder
-		filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
+    auto it = srv.getErrorPages().find(code);
+    if (it != srv.getErrorPages().end())
+        filePath = srv.getRoot() + "/" + it->second;
+    else
+        filePath = srv.getRoot() + "/errors/" + std::to_string(code) + ".html";
+
+    std::ifstream file(filePath.c_str());
+    std::ostringstream buffer;
+
+    if (file.is_open()) {
+        buffer << file.rdbuf();
+        file.close();
+    }
+
+    // 🔹 if file missing OR empty → fallback inline page
+	if (!file.is_open() || buffer.str().empty()) {
+		Logger::log(INFO, "Fallback error page triggered");
+		std::ostringstream fb;
+		fb << "<html><body><h1>" << code << " "
+		<< HttpResponse::statusMessageForCode(code)
+		<< "</h1></body></html>";
+		buffer.str(fb.str());
 	}
 
-	std::ifstream file(filePath.c_str());
-	std::ostringstream buffer;
+    std::string body = buffer.str();
+    Logger::log(INFO, "makeErrorResponse body size = " + std::to_string(body.size()));
 
-	if (file.is_open()) {
-		buffer << file.rdbuf();
-		file.close();
-	} else {
-	// 🔹  Minimal inline fallback
-		buffer << "<html><body><h1>" << code << " "
-				<< HttpResponse::statusMessageForCode(code)
-				<< "</h1></body></html>";
-	}
-
-	std::string body = buffer.str();
-	HttpResponse res(code, body);
-	res.setHeader("Content-Type", "text/html");
-	res.setHeader("Content-Length", std::to_string(body.size()));
-	return res;
+    HttpResponse res(code, body);
+    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Length", std::to_string(body.size()));
+    return res;
 }
 
 // The static-file serving logic lives in StaticFiles.{hpp,cpp} and exposes
