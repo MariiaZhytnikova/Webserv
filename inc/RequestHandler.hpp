@@ -4,6 +4,8 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 
+const size_t MAX_URI_LENGTH = 8192;
+
 enum HttpMethod {
 	METHOD_GET,
 	METHOD_POST,

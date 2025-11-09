@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Webserv — 42 Project</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+	<meta name="theme-color" content="#0b1220">
+	<link rel="stylesheet" href="css/errors.css">
+
+</head>
+<body>
+  <div class="code" id="code" data-text="404">404</div>
+  <div class="message" id="msg">Not Found :(</div>
+  <div class="subtitle" id="desc">
+    Page not found — maybe it took a little vacation?
+  </div>
+
+<script>
+// Detect code from query like ?code=500
+const params = new URLSearchParams(location.search);
+const code = params.get("code") || "404";
+const cEl = document.getElementById("code");
+const msg = document.getElementById("msg");
+const desc = document.getElementById("desc");
+cEl.textContent = code;
+cEl.dataset.text = code;
+
+const messages = {
+  "301": ["Moved Permanently :(", "Whoa there, traveler! This page packed up and moved to a new home. Don’t worry — we’ll show you the way. 🧭"],
+  "400": ["Bad Request :(", "Ohhh — your request is malformed. It's always time for a coffee break. ☕ Try again when your request is fresh."],
+  "403": ["Forbidden 🚫", "No can do — this area is off-limits. Hands off the cookies (and the admin panel)."],
+  "404": ["Not Found :(", "Page not found — maybe it took a little vacation?"],
+  "405": ["Method Not Allowed", "That action isn't allowed here. Try a different method — POST, DELETE, or just a polite knock."],
+  "413": ["Payload Too Large", "The server couldn’t swallow that much data. Shrink it and try again."],
+  "414": ["URI Too Long", "This link is getting ridiculous. Shorten the URL (or write it on a napkin)."],
+  "500": ["Server Error ☕", "It's always time for coffee breack! We should be back by the time you finish your coffee ☕."],
+  "501": ["Not Implemented 🚫", "Oof — that feature hasn't landed yet. We're working on it, but not today."],
+  "502": ["Bad Gateway", "Our upstream server spat out an error. Blame the middleman — try refreshing."],
+  "505": ["HTTP Version Not Supported", "That protocol is from another era. Please use a supported HTTP version (modern vibes only)."]
+};
+if (messages[code]) {
+  msg.textContent = messages[code][0];
+  desc.textContent = messages[code][1];
+}
+</script>
+</body>
+</html>

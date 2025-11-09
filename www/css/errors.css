@@ -1,0 +1,59 @@
+
+:root {
+  --bg: #0b1220;
+  --accent: #ffcc00;
+  --text: #ffcc00;
+  --muted: #c0c0c0;
+  --font: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--accent);
+  font-family: var(--font);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+}
+.code {
+  font-size: 120px;
+  font-weight: 900;
+  color: transparent;
+  background-image: repeating-linear-gradient(
+    0deg,
+    var(--accent),
+    var(--accent) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  position: relative;
+}
+.code::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  color: var(--accent);
+  opacity: 0.15;
+}
+.message {
+  margin-top: 24px;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-weight: bold;
+  display: inline-block;
+}
+.subtitle {
+  margin-top: 18px;
+  color: var(--text);
+  font-size: 1.1em;
+  max-width: 480px;
+}
