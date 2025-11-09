@@ -193,15 +193,13 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 	// If static handler didn't produce a response, fall back to an error for now.
 	sendResponse(makeErrorResponse(srv, 404));
 }
-
 void RequestHandler::handlePost(Server& srv, Location& loc) {
-	(void)loc;
-	(void)srv;
-	// TODO: implement file upload or form handling
-	std::string body = "<h1>POST received</h1>";
-	HttpResponse res(200, body);
-	res.setHeader("Content-Type", "text/html");
-	sendResponse(res);
+	if (auto res = servePostStatic(_request, srv, loc, *this)) {
+		sendResponse(*res);
+		return;
+	}
+	// If static handler didn't produce a response, fall back to an error for now.
+	sendResponse(makeErrorResponse(srv, 404));
 }
 
 void RequestHandler::handleDelete(Server& srv, Location& loc) {
