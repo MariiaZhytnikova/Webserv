@@ -3,6 +3,8 @@
 #include "ServerManager.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "Session.hpp"
+#include "Logger.hpp"
 
 const size_t MAX_URI_LENGTH = 8192;
 
@@ -37,11 +39,7 @@ private:
 	bool			_keepAlive;
 
 	HttpMethod getMethod() const;
-	bool preCheckRequest(Server& srv, Location& loc);
-	bool checkHeaders(Server& srv);
-	bool isMethodAllowed(const std::vector<std::string>& allowed) const;
-	void sendResponse(const HttpResponse& res);
-	
+
 	Server& matchServer(const HttpRequest& req, int listenPort);
 	void handleGet(Server& srv, Location& loc);
 	void handlePost(Server& srv, Location& loc);
@@ -49,8 +47,12 @@ private:
 
 public:
 	RequestHandler(ServerManager& manager, const std::string& rawRequest, int clientFd);
-	HttpResponse makeErrorResponse(const Server& srv, int code);
+
 	void handle(int listenPort);
+
+	const HttpRequest& getRequest() const;
+	HttpResponse makeErrorResponse(const Server& srv, int code);
+	void sendResponse(const HttpResponse& res);
 };
 
 
