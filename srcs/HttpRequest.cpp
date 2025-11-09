@@ -23,81 +23,61 @@ void HttpRequest::parseRequestLine(std::istringstream& stream) {
 
 void HttpRequest::parseHeaders(std::istringstream& stream) {
 	std::string line;
-	while (std::getline(stream, line) && line != "\r") {
+
+	while (std::getline(stream, line)) {
+		// Remove trailing '\r' if present
 		if (!line.empty() && line.back() == '\r')
 			line.pop_back();
 
+		// End of headers
+		if (line.empty())
+			break;
+
+		// Look for ':'
 		size_t pos = line.find(':');
-		if (pos != std::string::npos) {
-
-			// 🔹 Check key for forbidden characters
-			std::string key = line.substr(0, pos);
-			std::transform(key.begin(), key.end(), key.begin(),
-				[](unsigned char c){ return std::tolower(c); });
-			if (key.empty()
-				|| key.find(' ') != std::string::npos
-				|| key.find_first_not_of(
-					"!#$%&'*+-.^_`|~0123456789"
-					"abcdefghijklmnopqrstuvwxyz"
-					"ABCDEFGHIJKLMNOPQRSTUVWXYZ") != std::string::npos)
-			{
-				_headers.insert(std::make_pair("malformed", line));
-				continue;
-			}
-
-			// 🔹 Check value for forbidden characters
-			std::string value = line.substr(pos + 1);
-			while (!value.empty() && value[0] == ' ')
-				value.erase(0, 1);
-			bool valueMalformed = false;
-			for (size_t i = 0; i < value.size(); ++i) {
-				unsigned char c = value[i];
-				if ((c < 32 && c != '\t') || c == 127) {
-					valueMalformed = true;
-					break;
-				}
-			}
-			if (valueMalformed) {
-				_headers.insert(std::make_pair("malformed", line));
-				continue;
-			}
-			_headers.insert(std::make_pair(key, value));
-
-		} else {
-
-			// 🔹 No colon found
+		if (pos == std::string::npos) {
 			_headers.insert(std::make_pair("malformed", line));
+			continue;
 		}
-	}
 
-	for (auto &pairs : _headers)
-		Logger::log(TRACE, pairs.first + " : " + pairs.second);
+		// Extract and lowercase key
+		std::string key = line.substr(0, pos);
+		std::transform(key.begin(), key.end(), key.begin(),
+					   [](unsigned char c){ return std::tolower(c); });
 
-	auto range = _headers.equal_range("cookie");
-	for (auto it = range.first; it != range.second; ++it) {
-		parseCookies(it->second);
-	}
-}
+		// Trim spaces from key
+		key.erase(0, key.find_first_not_of(" \t"));
+		key.erase(key.find_last_not_of(" \t") + 1);
 
-void HttpRequest::parseCookies(const std::string& cookieStr) {
-	std::istringstream cookieStream(cookieStr);
-	std::string pair;
-
-	while (std::getline(cookieStream, pair, ';')) {
-		size_t eqPos = pair.find('=');
-		if (eqPos != std::string::npos) {
-			std::string name = pair.substr(0, eqPos);
-			std::string value = pair.substr(eqPos + 1);
-
-			// Trim spaces
-			while (!name.empty() && name[0] == ' ')
-				name.erase(0, 1);
-			while (!value.empty() && value[0] == ' ')
-				value.erase(0, 1);
-
-			_cookies[name] = value;
+		if (key.empty()) {
+			_headers.insert(std::make_pair("malformed", line));
+			continue;
 		}
+
+		// Extract value and trim leading spaces
+		std::string value = line.substr(pos + 1);
+		value.erase(0, value.find_first_not_of(" \t"));
+
+		// Check value for control characters
+		bool valueMalformed = false;
+		for (size_t i = 0; i < value.size(); ++i) {
+			unsigned char c = value[i];
+			if ((c < 32 && c != '\t') || c == 127) {
+				valueMalformed = true;
+				break;
+			}
+		}
+		if (valueMalformed) {
+			_headers.insert(std::make_pair("malformed", line));
+			continue;
+		}
+
+		_headers.insert(std::make_pair(key, value));
 	}
+
+	// for (auto &pairs : _headers)
+	// 	Logger::log(TRACE, std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
+
 }
 
 void HttpRequest::parseBody(std::istringstream& stream) {
@@ -110,10 +90,10 @@ void HttpRequest::parseBody(std::istringstream& stream) {
 }
 
 std::string HttpRequest::getHeader(const std::string& key) const {
-	std::map<std::string, std::string>::const_iterator it = _headers.find(key);
+	auto it = _headers.find(key);
 	if (it != _headers.end())
 		return it->second;
-	return ""; 
+	return "";
 }
 
 const std::string& HttpRequest::getMethod() const { return _method; }
@@ -121,14 +101,6 @@ const std::string& HttpRequest::getPath() const { return _path; }
 const std::string& HttpRequest::getVersion() const { return _version; }
 const std::multimap<std::string, std::string>& HttpRequest::getHeaders() const { return _headers; }
 const std::string& HttpRequest::getBody() const { return _body; }
-
-const std::string& HttpRequest::getCookies(const std::string& which) const {
-	static const std::string empty;
-	std::map<std::string, std::string>::const_iterator it = _cookies.find(which);
-	if (it != _cookies.end())
-		return it->second;
-	return empty;
-}
 
 bool HttpRequest::isHeaderValue(const std::string& key, const std::string& value) const {
 	auto range = _headers.equal_range(key);
@@ -147,4 +119,25 @@ bool HttpRequest::isHeaderValue(const std::string& key, const std::string& value
 		}
 	}
 	return false;
+}
+
+std::string HttpRequest::returnHeaderValue(const std::string& key, const std::string& subkey) const {
+	auto range = _headers.equal_range(key); // all headers with this key
+	for (auto it = range.first; it != range.second; ++it) {
+		std::string headerValue = it->second; // e.g., "foo=bar; session_id=abcdef123; x=y"
+
+		std::istringstream iss(headerValue);
+		std::string token;
+		while (std::getline(iss, token, ';')) {
+			// trim spaces
+			token.erase(0, token.find_first_not_of(" \t"));
+			token.erase(token.find_last_not_of(" \t") + 1);
+
+			if (token.compare(0, subkey.size(), subkey) == 0 && token[subkey.size()] == '=') {
+				return token.substr(subkey.size() + 1); // return by value
+			}
+		}
+	}
+
+	return ""; // empty string if not found
 }
