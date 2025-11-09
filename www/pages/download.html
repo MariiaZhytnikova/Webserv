@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Webserv Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: black;
+		color: #ffcc00;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 { margin-bottom: 20px; }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      margin: 10px;
+      background: #ffa500;
+      color: black;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #ffd54d;
+    }
+    .upload-form {
+      margin-top: 30px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: white;
+    }
+    input[type="file"] {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🕸️ Webserv File Test (GET METHOD)</h1>
+
+  <!-- DOWNLOAD TEST -->
+  <a class="btn" href="/images/logo.png" download>Download image</a>
+
+  <!-- OR test another file manually -->
+  <a class="btn" href="/css/style.css" download>Download style</a>
+  <a class="btn" href="/index.html" download>Download html</a>
+
+
+</body>
+</html>
