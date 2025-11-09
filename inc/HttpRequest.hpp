@@ -56,6 +56,8 @@ class HttpRequest {
 		const std::multimap<std::string, std::string>& getHeaders() const;
 		const std::string&	getBody() const;
 		const std::string&	getCookies(const std::string& which) const;
+
+		bool				isHeaderValue(const std::string& key, const std::string& value) const;
 };
 
 

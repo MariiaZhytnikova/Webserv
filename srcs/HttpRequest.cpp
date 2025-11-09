@@ -129,3 +129,22 @@ const std::string& HttpRequest::getCookies(const std::string& which) const {
 		return it->second;
 	return empty;
 }
+
+bool HttpRequest::isHeaderValue(const std::string& key, const std::string& value) const {
+	auto range = _headers.equal_range(key);
+	for (auto it = range.first; it != range.second; ++it) {
+		std::string headerValue = it->second;
+
+		// Split comma-separated tokens
+		std::istringstream iss(headerValue);
+		std::string token;
+		while (std::getline(iss, token, ',')) {
+			// Remove leading/trailing spaces
+			token.erase(0, token.find_first_not_of(" \t"));
+			token.erase(token.find_last_not_of(" \t") + 1);
+
+			if (token == value) return true;
+		}
+	}
+	return false;
+}
