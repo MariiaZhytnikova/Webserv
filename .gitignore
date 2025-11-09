@@ -1,7 +1,7 @@
 #folders
 obj/
 log/
-
+uploads/
 # Prerequisites
 *.d
 
