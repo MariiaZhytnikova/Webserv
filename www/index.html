@@ -70,7 +70,9 @@
 							<pre><code>curl -i http://localhost:8080/
 curl -i -X POST -d "hello=world" http://localhost:8080/echo
 curl -i -X DELETE http://localhost:8080/resource
-curl -i -F "file=@test.txt" http://localhost:8080/upload</code></pre>
+curl -i -F "file=@test.txt" http://localhost:8080/upload
+printf "METHOD / HTTP/1.1\r\n Header1:value \r\n Header2:value \r\n\r\n body" | nc localhost 8080</code></pre>
+printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080</code></pre>
 							<div class="muted" style="margin-top:8px">Replace port/path as configured in your `default.conf`</div>
 						</section>
 					</div>
