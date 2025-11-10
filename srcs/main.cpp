@@ -42,6 +42,7 @@ void PrintMe(const std::vector<Server>& servers) {
 			std::cout << "      Return: " << loc.getReturnCode()
 					<< " -> " << loc.getReturnTarget() << "\n";
 			}
+			std::cout << "      Is redirect: " << std::to_string(loc.hasReturn()) << "\n";
 			// CGI extensions
 			for (const auto& cgi : loc.getCgiExtensions())
 				std::cout << "      CGI: " << cgi.first << " -> " << cgi.second << "\n";

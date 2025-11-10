@@ -43,15 +43,46 @@ void Server::setMethod(const std::vector<std::string>& methods) { _methods = met
 void Server::addLocation(const Location& loc) { _locations.push_back(loc); }
 void Server::addLocation(Location&& loc) { _locations.push_back(std::move(loc)); }
 
-Location Server::findLocation(const std::string& path) const {
-    Location bestMatch = _locations.front(); // fallback
+#include <iostream>
 
-    for (std::vector<Location>::const_iterator it = _locations.begin(); it != _locations.end(); ++it) {
-        if (path.compare(0, it->getPath().size(), it->getPath()) == 0) {
-            if (it->getPath().size() > bestMatch.getPath().size()) {
-                bestMatch = *it;
-            }
-        }
-    }
-    return bestMatch;
+Location Server::findLocation(const std::string& path) const {
+	Location const* bestMatch = NULL;
+
+	// Exact match
+	for (std::vector<Location>::const_iterator it = _locations.begin();
+		it != _locations.end(); ++it)
+	{
+		if (it->getPath() == path)
+			return *it; // exact match wins
+	}
+
+	// Longest prefix match
+	for (std::vector<Location>::const_iterator it = _locations.begin();
+		it != _locations.end(); ++it)
+	{
+		const std::string& locPath = it->getPath();
+
+		if (path.compare(0, locPath.size(), locPath) == 0) {
+			// Only first match
+			if (bestMatch == NULL || locPath.size() > bestMatch->getPath().size()) {
+				bestMatch = &(*it);
+			}
+		}
+	}
+
+	// If nothing matched, return default "/"
+	if (bestMatch != NULL) {
+		return *bestMatch;
+	}
+
+	// fallback to root "/" explicitly
+	for (std::vector<Location>::const_iterator it = _locations.begin();
+		it != _locations.end(); ++it)
+	{
+		if (it->getPath() == "/")
+			return *it;
+	}
+
+	// Should not happen
+	return _locations.front();
 }
