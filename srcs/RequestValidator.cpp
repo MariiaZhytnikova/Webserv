@@ -59,8 +59,13 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 		if (!checkPost(handl, srv))
 			return false;
 	}
-	//Transfer-Encoding — reject chunked if unsupported → 501.
 
+	// 🔹 Transfer-Encoding: chunked — reject
+	if (handl.getRequest().isHeaderValue("transfer-encoding", "chunked")) {
+		handl.sendResponse(handl.makeErrorResponse(srv, 501));
+		Logger::log(ERROR, std::string("501 method not implemented: Transfer-Encoding: chunked"));
+		return false;
+	}
 	return true;
 }
 
