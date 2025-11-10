@@ -73,9 +73,6 @@ bool RequestValidator::checkHeaders(RequestHandler& handl, Server& srv) {
 	(void)srv;
 	const std::multimap<std::string, std::string>& headers = handl.getRequest().getHeaders();
 
-	// for (auto &pairs : headers)
-	// 	Logger::log(TRACE, std::string("from checkHeaders: ") + pairs.first + " : " + pairs.second);
-
 	// 🔹 Malformed header
 	std::string str = handl.getRequest().getHeader("malformed");
 	if (!str.empty()) {
@@ -86,9 +83,6 @@ bool RequestValidator::checkHeaders(RequestHandler& handl, Server& srv) {
 
 	// 🔹 Duplicate Host header
 	
-	for (auto &pairs : headers)
-		Logger::log(TRACE, std::string("from checkHeaders: ") + pairs.first + " : " + pairs.second);
-
 	auto range_host = headers.equal_range("host");
 	if (std::distance(range_host.first, range_host.second) != 1) {
 		handl.sendResponse(handl.makeErrorResponse(srv, 400));
@@ -149,7 +143,7 @@ bool RequestValidator::checkUri(RequestHandler& handl, const Server& srv){
 }
 
 bool RequestValidator::handleRedirect(RequestHandler& handl, Server& srv, Location& loc) {
-	// 🔹 Redirection (return directive)
+	// Load the custom HTML page
 	std::string path = srv.getRoot() + "/errors/301.html";
 	std::ifstream file(path.c_str());
 	std::string buffer;
@@ -157,42 +151,39 @@ bool RequestValidator::handleRedirect(RequestHandler& handl, Server& srv, Locati
 	if (file) {
 		std::ostringstream ss;
 		ss << file.rdbuf();
-		std::string content = ss.str();
+		buffer = ss.str();
 
-		// check minimal HTML structure
-		if (!content.empty() &&
-			(content.find("<html") != std::string::npos || content.find("<body") != std::string::npos)) {
-			buffer = content;
-			Logger::log(INFO, "Custom HTML page used: " + path);
-			// replace placeholder {{REDIRECT_URL}}
-			std::string target = loc.getReturnTarget();
-			size_t pos = buffer.find("{{REDIRECT_URL}}");
-			while (pos != std::string::npos) {
-				buffer.replace(pos, std::string("{{REDIRECT_URL}}").length(), target);
-				pos = buffer.find("{{REDIRECT_URL}}", pos + target.length());
-			}
-		} else {
-			Logger::log(WARNING, "invalid page content, using direct redirect");
+		// Replace placeholder
+		std::string target = loc.getReturnTarget();
+		size_t pos = buffer.find("{{REDIRECT_URL}}");
+		while (pos != std::string::npos) {
+			buffer.replace(pos, std::string("{{REDIRECT_URL}}").length(), target);
+			pos = buffer.find("{{REDIRECT_URL}}", pos + target.length());
 		}
+
+		Logger::log(INFO, "Serving custom 301 page");
 	}
+
+	// If no custom content -> fallback real redirect
 	if (buffer.empty()) {
-		HttpResponse res(loc.getReturnCode());
+		HttpResponse res(loc.getReturnCode());       // The real code 301
 		res.setHeader("Location", loc.getReturnTarget());
 		handl.sendResponse(res);
-		Logger::log(ERROR, std::string("redirect to ") + loc.getReturnTarget());
+		Logger::log(ERROR, std::string("fallback redirect to ") + loc.getReturnTarget());
 		return false;
 	}
 
-	// build response
-	HttpResponse res(loc.getReturnCode(), buffer);
-	res.setHeader("Location", loc.getReturnTarget());
+	// Serve custom HTML with 200 OK
+	HttpResponse res(200, buffer);
 	res.setHeader("Content-Type", "text/html");
 	res.setHeader("Content-Length", std::to_string(buffer.size()));
 
 	handl.sendResponse(res);
-	Logger::log(INFO, "301 redirecting to " + loc.getReturnTarget());
+
+	Logger::log(INFO, "Displayed transitional redirect page (meta refresh)");
 	return false;
 }
+
 
 bool RequestValidator::isMethodAllowed(RequestHandler& handl, const std::vector<std::string>& allowed) {
 	if (allowed.empty()) return true; // allow all if not specified
