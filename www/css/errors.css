@@ -8,7 +8,7 @@
 }
 body {
   margin: 0;
-  background: var(--bg);
+  background: linear-gradient(180deg, #071226 0%, #0b1220 100%);
   color: var(--accent);
   font-family: var(--font);
   display: flex;

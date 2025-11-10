@@ -185,10 +185,12 @@ std::optional<HttpResponse> servePostStatic(
 
 	if (!reqPath.empty() && reqPath.front() != '/')
 		reqPath.insert(reqPath.begin(), '/');
-
+	std::cout<<"PREFIX - "<< prefix<<std::endl;
+	std::cout<<"reqPAth - "<< reqPath<<std::endl;
+	std::cout<<"BaseRoot - "<< baseRoot<<std::endl;
 	// 🔹 Build final target path
 	std::string fullPath = baseRoot + reqPath;
-
+	std::cout<<"full path - "<< fullPath<<std::endl;
 	// 🔹 Ensure target directory exists
 	std::string dirPath = fullPath.substr(0, fullPath.find_last_of('/'));
 	struct stat st;
