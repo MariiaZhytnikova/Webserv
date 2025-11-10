@@ -59,19 +59,17 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 		if (!checkPost(handl, srv))
 			return false;
 	}
+	//Transfer-Encoding — reject chunked if unsupported → 501.
 
-	// 🔹 Transfer-Encoding: chunked — reject
-	if (handl.getRequest().isHeaderValue("transfer-encoding", "chunked")) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 501));
-		Logger::log(ERROR, std::string("501 method not implemented: Transfer-Encoding: chunked"));
-		return false;
-	}
 	return true;
 }
 
 bool RequestValidator::checkHeaders(RequestHandler& handl, Server& srv) {
 	(void)srv;
 	const std::multimap<std::string, std::string>& headers = handl.getRequest().getHeaders();
+
+	// for (auto &pairs : headers)
+	// 	Logger::log(TRACE, std::string("from checkHeaders: ") + pairs.first + " : " + pairs.second);
 
 	// 🔹 Malformed header
 	std::string str = handl.getRequest().getHeader("malformed");
@@ -83,6 +81,9 @@ bool RequestValidator::checkHeaders(RequestHandler& handl, Server& srv) {
 
 	// 🔹 Duplicate Host header
 	
+	for (auto &pairs : headers)
+		Logger::log(TRACE, std::string("from checkHeaders: ") + pairs.first + " : " + pairs.second);
+
 	auto range_host = headers.equal_range("host");
 	if (std::distance(range_host.first, range_host.second) != 1) {
 		handl.sendResponse(handl.makeErrorResponse(srv, 400));
@@ -143,7 +144,7 @@ bool RequestValidator::checkUri(RequestHandler& handl, const Server& srv){
 }
 
 bool RequestValidator::handleRedirect(RequestHandler& handl, Server& srv, Location& loc) {
-	// Load the custom HTML page
+	// 🔹 Redirection (return directive)
 	std::string path = srv.getRoot() + "/errors/301.html";
 	std::ifstream file(path.c_str());
 	std::string buffer;
@@ -151,39 +152,42 @@ bool RequestValidator::handleRedirect(RequestHandler& handl, Server& srv, Locati
 	if (file) {
 		std::ostringstream ss;
 		ss << file.rdbuf();
-		buffer = ss.str();
+		std::string content = ss.str();
 
-		// Replace placeholder
-		std::string target = loc.getReturnTarget();
-		size_t pos = buffer.find("{{REDIRECT_URL}}");
-		while (pos != std::string::npos) {
-			buffer.replace(pos, std::string("{{REDIRECT_URL}}").length(), target);
-			pos = buffer.find("{{REDIRECT_URL}}", pos + target.length());
+		// check minimal HTML structure
+		if (!content.empty() &&
+			(content.find("<html") != std::string::npos || content.find("<body") != std::string::npos)) {
+			buffer = content;
+			Logger::log(INFO, "Custom HTML page used: " + path);
+			// replace placeholder {{REDIRECT_URL}}
+			std::string target = loc.getReturnTarget();
+			size_t pos = buffer.find("{{REDIRECT_URL}}");
+			while (pos != std::string::npos) {
+				buffer.replace(pos, std::string("{{REDIRECT_URL}}").length(), target);
+				pos = buffer.find("{{REDIRECT_URL}}", pos + target.length());
+			}
+		} else {
+			Logger::log(WARNING, "invalid page content, using direct redirect");
 		}
-
-		Logger::log(INFO, "Serving custom 301 page");
 	}
-
-	// If no custom content -> fallback real redirect
 	if (buffer.empty()) {
-		HttpResponse res(loc.getReturnCode());       // The real code 301
+		HttpResponse res(loc.getReturnCode());
 		res.setHeader("Location", loc.getReturnTarget());
 		handl.sendResponse(res);
-		Logger::log(ERROR, std::string("fallback redirect to ") + loc.getReturnTarget());
+		Logger::log(ERROR, std::string("redirect to ") + loc.getReturnTarget());
 		return false;
 	}
 
-	// Serve custom HTML with 200 OK
-	HttpResponse res(200, buffer);
+	// build response
+	HttpResponse res(loc.getReturnCode(), buffer);
+	res.setHeader("Location", loc.getReturnTarget());
 	res.setHeader("Content-Type", "text/html");
 	res.setHeader("Content-Length", std::to_string(buffer.size()));
 
 	handl.sendResponse(res);
-
-	Logger::log(INFO, "Displayed transitional redirect page (meta refresh)");
+	Logger::log(INFO, "301 redirecting to " + loc.getReturnTarget());
 	return false;
 }
-
 
 bool RequestValidator::isMethodAllowed(RequestHandler& handl, const std::vector<std::string>& allowed) {
 	if (allowed.empty()) return true; // allow all if not specified
@@ -205,7 +209,6 @@ bool RequestValidator::checkPost(RequestHandler& handl, Server& srv) {
 		return false;
 	}
 	size_t bodySize = 0;
-	(void)bodySize;
 	try {
 		bodySize = std::stoul(length);
 	} catch (const std::exception&) {
