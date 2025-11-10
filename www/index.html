@@ -39,22 +39,22 @@
 						</div>
 
 						<section id="features" class="features" aria-label="features">
-							<div class="feature">
+							<!-- <div class="feature">
 								<h3>Static files (GET)</h3>
 								<div class="muted">Serves files from the configured root. Try: <code>/index.html</code></div>
 							</div>
 							<div class="feature">
 								<h3>Form handling (POST)</h3>
 								<div class="muted">Parses POST bodies and handles multipart uploads.</div>
-							</div>
+							</div> -->
 							<div class="feature">
 								<h3>Directory listing</h3>
 								<div class="muted">Auto-index pages or custom listings depending on config.</div>
 							</div>
-							<div class="feature">
+							<!-- <div class="feature">
 								<h3>CGI</h3>
 								<div class="muted">Execute scripts (Python / PHP) via CGI interface.</div>
-							</div>
+							</div> -->
 							<div class="feature">
 								<h3>Custom errors</h3>
 								<div class="muted">Custom error pages for 404, 403, 500 etc.</div>
@@ -85,8 +85,10 @@ printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhell
 							<a class="btn" href="/">GET / (index)</a>
 							<a class="btn" href="/pages/download.html">DOWNLOAD</a>
 							<a class="btn" href="/pages/upload.html">UPLOAD</a>
+							<a class="btn" href="/pages/delete.html">DELETE</a>
 							<a class="btn" href="/cgi-bin/test.py">CGI: test.py</a>
-							<a class="btn" href="/list/">Directory listing</a>
+							<a class="btn" href="/cgi-bin/test.php">CGI: test.py</a>
+							<!-- <a class="btn" href="/list/">Directory listing</a> -->
 							<a class="btn" href="/redirect-me">Redirect (301)</a>
 						</div>
 

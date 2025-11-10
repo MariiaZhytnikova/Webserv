@@ -2,7 +2,7 @@
     --bg: #0b1220;
     --card: #0f1724;
     --muted: #9aa7bf;
-    --accent: #ffcc00;
+    --accent: #ffe066;
     --glass: rgba(255,255,255,0.03);
     --success: #28c76f;
 }
@@ -47,7 +47,7 @@ header {
     width:48px;
     height:48px;
     border-radius:10px;
-    background:linear-gradient(135deg,var(--accent),#ffa500);
+    background:linear-gradient(135deg,var(--accent),#ffe066);
     display:flex;align-items:center;justify-content:center;color:#0b1220;
     font-weight:700
 }

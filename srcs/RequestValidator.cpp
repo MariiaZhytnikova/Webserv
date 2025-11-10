@@ -205,6 +205,7 @@ bool RequestValidator::checkPost(RequestHandler& handl, Server& srv) {
 		return false;
 	}
 	size_t bodySize = 0;
+	(void)bodySize;
 	try {
 		bodySize = std::stoul(length);
 	} catch (const std::exception&) {

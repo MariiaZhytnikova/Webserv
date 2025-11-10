@@ -7,21 +7,22 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4ebd7;
-      color: #222;
+      background: black;
+      color: #ffe066;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
       margin: 0;
+      padding-top: 100px;
     }
-    h1 { margin-bottom: 20px; }
+    h1 { margin: 10px; }
     .btn {
       display: inline-block;
       padding: 12px 24px;
-      margin: 10px;
-      background: #ffa500;
+      margin: 10px 0 50px;
+      background: #ffe066;
       color: black;
       font-weight: 600;
       text-decoration: none;
@@ -32,28 +33,113 @@
       background: #ffd54d;
     }
     .upload-form {
-      margin-top: 30px;
+      margin: 20px;
       padding: 20px;
-      border: 1px solid #ddd;
+      border: 2px solid #ffe066;
       border-radius: 10px;
-      background: white;
+      background: #1a1a1a;
+      max-width: 500px;
+      width: 100%;
+    }
+    .upload-form h3 {
+      color: #ffe066;
+      margin-top: 0;
+      text-align: center;
     }
     input[type="file"] {
-      margin-bottom: 10px;
+      margin-bottom: 15px;
+      padding: 8px;
+      width: 95%;
+      background: #333;
+      color: #ffe066;
+      border: 1px solid #666;
+      border-radius: 4px;
+    }
+    textarea {
+      width: 95%;
+      padding: 8px;
+      background: #333;
+      color: #ffe066;
+      border: 1px solid #666;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #ffe066;
+      font-weight: bold;
+    }
+    .upload-btn {
+      background: #ffe066;
+      color: black;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+    }
+    .upload-btn:hover {
+      background: #4cf0e3;
+    }
+    .info {
+      background: #2d2d2d;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-size: 12px;
+      color: #ccc;
     }
   </style>
 </head>
 <body>
 
-  <h1>🕸️ Webserv File Test</h1>
+  <h1>🕸️ Webserv File Upload Test</h1>
 
-  <!-- UPLOAD TEST -->
-  <form class="upload-form" action="/upload/test.txt" method="post" enctype="text/plain">
-    <h3>Upload test (POST)</h3>
-    <textarea name="data" rows="4" cols="40" placeholder="Type something..."></textarea><br />
-    <button type="submit" class="btn" style="background:#8bc34a;">Upload (POST)</button>
+  <!-- FILE UPLOAD FORM -->
+  <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+    <h3>File Upload</h3>
+    <div class="info">
+      Select a file to upload to the server. Supported file types: images, text files, documents, etc.
+    </div>
+    
+    <div class="form-group">
+      <label for="file">Choose File:</label>
+      <input type="file" id="file" name="file" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="description">Description (optional):</label>
+      <textarea id="description" name="description" rows="3" placeholder="Add a description for your file..."></textarea>
+    </div>
+    
+    <button type="submit" class="upload-btn">Upload File</button>
   </form>
-  	<a class="btn" href="/">GET / (index)</a>
+
+  <!-- TEXT UPLOAD FORM -->
+  <form class="upload-form" action="/upload/text" method="post" enctype="application/x-www-form-urlencoded">
+    <h3>Text Upload</h3>
+    <div class="info">
+      Submit text content directly to create a new file on the server.
+    </div>
+    
+    <div class="form-group">
+      <label for="filename">Filename:</label>
+      <input type="text" id="filename" name="filename" placeholder="example.txt">
+    </div>
+    
+    <div class="form-group">
+      <label for="content">Content:</label>
+      <textarea id="content" name="content" rows="6" placeholder="Type your content here..." required></textarea>
+    </div>
+    
+    <button type="submit" class="upload-btn">Save Text File</button>
+  </form>
+  <a class="btn" href="/" style="margin-top: 20px;">Back to Home</a>
 
 </body>
 </html>
