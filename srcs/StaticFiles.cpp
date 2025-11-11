@@ -278,36 +278,36 @@ std::optional<HttpResponse> servePostStatic(
 				std::string line;
 				bool isFilePart = false;
 				while (std::getline(hs, line)) {
-					// remove trailing \r if present
-					if (!line.empty() && line.back() == '\r') line.pop_back();
-					std::string low = line;
-					// lowercase compare not necessary here, look for Content-Disposition
-					if (line.find("Content-Disposition:") != std::string::npos) {
-						disposition = line;
-						// look for filename="..."
-						size_t fn = line.find("filename=");
+					if (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+						line.pop_back();
+					std::string lower = line;
+					for (size_t i = 0; i < lower.size(); ++i)
+						lower[i] = std::tolower(lower[i]);
+
+					// detect content-disposition
+					if (lower.find("content-disposition") != std::string::npos) {
+						// find filename="..."
+						size_t fn = lower.find("filename=");
 						if (fn != std::string::npos) {
-							// extract between quotes
 							size_t q1 = line.find('"', fn);
-							if (q1 != std::string::npos) {
-								size_t q2 = line.find('"', q1 + 1);
-								if (q2 != std::string::npos && q2 > q1)
-									fileName = line.substr(q1 + 1, q2 - q1 - 1);
-							}
+							size_t q2 = line.find('"', q1 + 1);
+							if (q1 != std::string::npos && q2 != std::string::npos)
+								fileName = line.substr(q1 + 1, q2 - q1 - 1);
 						}
-						// look for name="file" or other field name
-						size_t nm = line.find("name=");
+
+						// find name="..."
+						size_t nm = lower.find("name=");
 						if (nm != std::string::npos) {
 							size_t q1 = line.find('"', nm);
 							size_t q2 = line.find('"', q1 + 1);
 							if (q1 != std::string::npos && q2 != std::string::npos) {
 								std::string fieldName = line.substr(q1 + 1, q2 - q1 - 1);
-								if (fieldName == "file") isFilePart = true;
+								if (fieldName == "file")
+									isFilePart = true;
 							}
 						}
 					}
 				}
-
 				size_t contentStart = headersEnd + 4; // skip \r\n\r\n
 				size_t nextBoundary = body.find(fullBoundary, contentStart);
 				if (nextBoundary == std::string::npos) break;
