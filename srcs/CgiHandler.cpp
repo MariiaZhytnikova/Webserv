@@ -75,7 +75,7 @@ std::string CgiHandler::runProcess(
 		throw std::runtime_error("fork failed");
 
 	if (pid == 0) {
-		// --- Child ---
+		// Child
 		dup2(inPipe[0], STDIN_FILENO);
 		dup2(outPipe[1], STDOUT_FILENO);
 		close(inPipe[1]);
@@ -104,7 +104,7 @@ std::string CgiHandler::runProcess(
 		_exit(1);
 	}
 
-	// --- Parent ---
+	// Parent
 	close(inPipe[0]);
 	close(outPipe[1]);
 
