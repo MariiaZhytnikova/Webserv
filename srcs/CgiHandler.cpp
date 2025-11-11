@@ -7,9 +7,10 @@
 
 CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
-HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::string& interpreterPath) {
-	std::map<std::string, std::string> env;
-	env = buildEnv(scriptPath);
+HttpResponse CgiHandler::execute(const std::string& scriptPath,
+								const std::string& interpreterPath,
+								const std::string& serverRoot) {
+	std::map<std::string, std::string> env = buildEnv(scriptPath, serverRoot);
 	std::string output = runProcess(scriptPath, env, interpreterPath);
 
 	// Parse CGI output: split headers from body
@@ -33,7 +34,7 @@ HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::strin
 	return res;
 }
 
-std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scriptPath) const {
+std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scriptPath, const std::string& serverRoot) const {
 	
 	std::map<std::string, std::string> env;
 
@@ -56,6 +57,7 @@ std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scrip
 	env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	env["SERVER_SOFTWARE"] = "MyWebServ/1.0";
 	env["REDIRECT_STATUS"] = "200"; // required for PHP-CGI
+	env["SERVER_ROOT"] = serverRoot;
 
 	return env;
 
