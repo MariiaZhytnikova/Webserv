@@ -13,12 +13,16 @@ class CgiHandler {
 		CgiHandler& operator=(const CgiHandler& other) = delete;
 		~CgiHandler() = default;
 
-		HttpResponse execute(const std::string& scriptPath);
+		HttpResponse execute(const std::string& scriptPath, const std::string& interpreterPath);
 
 	private:
 		const HttpRequest& _request;
 
 		std::map<std::string, std::string> buildEnv(const std::string& scriptPath) const;
-		std::string runProcess(const std::string& scriptPath, const std::map<std::string, std::string>& env);
+		std::string runProcess(
+			const std::string& scriptPath,
+			const std::map<std::string, std::string>& env,
+			const std::string& interpreterPath
+		);
 
 };

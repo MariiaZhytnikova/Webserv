@@ -3,13 +3,14 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "utils.hpp"
 
 CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
-HttpResponse CgiHandler::execute(const std::string& scriptPath) {
+HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::string& interpreterPath) {
 	std::map<std::string, std::string> env;
 	env = buildEnv(scriptPath);
-	std::string output = runProcess(scriptPath, env);
+	std::string output = runProcess(scriptPath, env, interpreterPath);
 
 	// Parse CGI output: split headers from body
 	size_t headerSize = output.find("\r\n\r\n");
@@ -60,20 +61,27 @@ std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scrip
 
 }
 
-std::string CgiHandler::runProcess(const std::string& scriptPath, const std::map<std::string, std::string>& env) {
+std::string CgiHandler::runProcess(
+	const std::string& scriptPath,
+	const std::map<std::string, std::string>& env,
+	const std::string& interpreterPath
+) {
 	int inPipe[2], outPipe[2];
-	pipe(inPipe);
-	pipe(outPipe);
+	if (pipe(inPipe) < 0 || pipe(outPipe) < 0)
+		throw std::runtime_error("pipe failed");
 
 	pid_t pid = fork();
+	if (pid < 0)
+		throw std::runtime_error("fork failed");
+
 	if (pid == 0) {
-		// --- Child ---
+		// Child
 		dup2(inPipe[0], STDIN_FILENO);
 		dup2(outPipe[1], STDOUT_FILENO);
 		close(inPipe[1]);
 		close(outPipe[0]);
 
-		// Prepare environment
+		// Build environment
 		std::vector<std::string> envStrings;
 		std::vector<char*> envp;
 		for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it) {
@@ -84,34 +92,34 @@ std::string CgiHandler::runProcess(const std::string& scriptPath, const std::map
 		envp.push_back(NULL);
 
 		// Prepare args
-		char* args[] = { const_cast<char*>(scriptPath.c_str()), NULL };
+		char* args[] = {
+			const_cast<char*>(interpreterPath.c_str()),
+			const_cast<char*>(scriptPath.c_str()),
+			NULL
+		};
 
-		execve(scriptPath.c_str(), args, &envp[0]);
-		_exit(1); // if execve fails
+		// Execute CGI interpreter
+		execve(interpreterPath.c_str(), args, envp.data());
+		perror("execve failed");
+		_exit(1);
 	}
-	else if (pid > 0) {
-		// --- Parent ---
-		close(inPipe[0]);
-		close(outPipe[1]);
 
-		// Send body to child (for POST)
-		if (_request.getMethod() == "POST")
-			write(inPipe[1], _request.getBody().c_str(), _request.getBody().size());
-		close(inPipe[1]);
+	// Parent
+	close(inPipe[0]);
+	close(outPipe[1]);
 
-		// Read CGI output
-		std::ostringstream output;
-		char buffer[1024];
-		ssize_t bytes;
-		while ((bytes = read(outPipe[0], buffer, sizeof(buffer))) > 0) {
-			output.write(buffer, bytes);
-		}
-		close(outPipe[0]);
-		waitpid(pid, NULL, 0);
-		return output.str();
-	}
-	else {
-		throw std::runtime_error("fork failed");
-	}
-	return "";
+	if (_request.getMethod() == "POST")
+		write(inPipe[1], _request.getBody().c_str(), _request.getBody().size());
+	close(inPipe[1]);
+
+	std::ostringstream output;
+	char buffer[1024];
+	ssize_t bytes;
+	while ((bytes = read(outPipe[0], buffer, sizeof(buffer))) > 0)
+		output.write(buffer, bytes);
+
+	close(outPipe[0]);
+	waitpid(pid, NULL, 0);
+
+	return output.str();
 }

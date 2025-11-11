@@ -48,9 +48,11 @@ void RequestHandler::handle(int listenPort) {
 
 		// If extension matches a CGI handler in this location
 		if (loc.getCgiExtensions().count(ext)) {
+			std::string interpreter = loc.getCgiExtensions().at(ext);
 			CgiHandler cgi(_request);
-			HttpResponse res = cgi.execute(srv.getRoot() + path);
+			HttpResponse res = cgi.execute(srv.getRoot() + path, interpreter);
 			sendResponse(res);
+			return;
 		}
 
 		// 🔹 Dispatch to correct handler
