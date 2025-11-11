@@ -18,6 +18,8 @@ private:
 	bool						_autoindex;
 	std::vector<std::string>	_methods;
 	std::vector<Location>		_locations;
+	bool						_hasListen;
+	bool						_hasRoot;
 
 public:
 	// Constructors
@@ -40,6 +42,9 @@ public:
 	const std::vector<std::string>& getMethods() const;
 	const std::vector<Location>& getLocations() const;
 
+	bool hasListen() const;
+	bool hasRoot() const;
+
 	// -------------------- Setters --------------------
 	void setHost(const std::string& host);
 	void setListenPort(int port);
@@ -51,6 +56,8 @@ public:
 	void setDefault(bool isDefault);
 	void setAutoindex(bool value);
 	void setMethod(const std::vector<std::string>& methods);
+	void setListenFlag();
+	void setRootFlag();
 
 	// -------------------- Locations --------------------
 	void addLocation(const Location& loc);

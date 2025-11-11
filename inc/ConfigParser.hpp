@@ -13,6 +13,7 @@ enum ConfigLineType {
 
 enum LocationDirective {
 	ALLOW_METHODS,
+	CLIENT_MAX_BODY_SIZE_LOC,
 	ROOT,
 	INDEX,
 	AUTOINDEX,

@@ -19,7 +19,7 @@ RequestHandler::RequestHandler(ServerManager& manager,
 
 void RequestHandler::handle(int listenPort) {
 	Server& srv = matchServer(_request, listenPort);
-
+	Logger::log(INFO, "host: " + _request.getHeader("host"));
 	try {
 		std::string sessionId = _request.returnHeaderValue("cookie", "session_id");
 
@@ -220,3 +220,10 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 // File not writable → 500 Internal Server Error
 
 // File already exists on POST (if overwrite not allowed) → 409 Conflict
+
+// ADD botton for location /too_large
+
+// add to config 
+	// 	location /too_large/ {
+	// 	client_max_body_size 1B;
+	// }
