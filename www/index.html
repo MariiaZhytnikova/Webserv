@@ -59,10 +59,17 @@
 								<h3>Custom errors</h3>
 								<div class="muted">Custom error pages for 404, 403, 500 etc.</div>
 							</div>
-							<div class="feature">
+							<!-- <div class="feature">
 								<h3>Redirection</h3>
-								<div class="muted">Configure 301/302 redirects per location.</div>
-							</div>
+								<div class="muted">
+									Configure 301/302 redirects per location.</div>
+							</div> -->
+						
+								<a class="feature" href="/redirect-me">
+									<h3>Redirection</h3>
+									<div class="muted">Configure 301/302 redirects per location.</div>
+								</a>
+				
 						</section>
 
 						<section style="margin-top:18px">
@@ -71,7 +78,7 @@
 curl -i -X POST -d "hello world" http://localhost:8080/uploads/echo
 curl -i -X DELETE http://localhost:8080/resource
 curl -i -F "file=@test.txt" http://localhost:8080/upload
-printf "METHOD / HTTP/1.1\r\n Header1:value \r\n Header2:value \r\n\r\n body" | nc localhost 8080</code></pre>
+printf "METHOD / HTTP/1.1\r\n Header1:value \r\n Header2:value \r\n\r\n body" | nc localhost 8080
 printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080</code></pre>
 							<div class="muted" style="margin-top:8px">Replace port/path as configured in your `default.conf`</div>
 						</section>
