@@ -46,6 +46,12 @@ void Server::addLocation(Location&& loc) { _locations.push_back(std::move(loc));
 #include <iostream>
 
 Location Server::findLocation(const std::string& path) const {
+
+	// No locations
+	if (_locations.empty()) {
+		return Location();
+	}
+
 	Location const* bestMatch = NULL;
 
 	// Exact match
