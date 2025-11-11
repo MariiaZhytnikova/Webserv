@@ -117,12 +117,14 @@ p.lead {
     background:var(--glass);
     padding:14px;
     border-radius:10px;
-    border:1px solid rgba(255,255,255,0.03)
+    border:1px solid rgba(255,255,255,0.03);
+    text-decoration: none;   /* removes underline */
 }
 
 .feature h3 {
     margin:0 0 8px 0;
-    font-size:16px
+    font-size:16px;
+    color: white;
 }
 
 .muted {
@@ -205,4 +207,8 @@ a.inline-link {
     max-width: 480px;
   }
 
+a.btn:hover {
+  background: #e0a800;
+  text-decoration: none;   /* make sure hover also stays clean */
+}
 @media (max-width:880px){.hero{grid-template-columns:1fr}}

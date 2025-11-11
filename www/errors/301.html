@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Webserv — 42 Project</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Webserv — 42 Project</title>
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+	<!-- Google Fonts -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-  <meta name="theme-color" content="#0b1220">
-  <link rel="stylesheet" href="css/errors.css">
+	<meta name="theme-color" content="#0b1220">
+	<link rel="stylesheet" href="css/errors.css">
 
-  <!-- 🔹 Meta refresh for redirect -->
-  <meta http-equiv="refresh" content="5;url={{REDIRECT_URL}}">
+	<!-- 🔹 Meta refresh for redirect -->
+	<meta http-equiv="refresh" content="5;url={{REDIRECT_URL}}">
 </head>
-<body>
-  <div class="code" id="code" data-text="301">301</div>
-  <div class="message" id="msg">Moved Permanently :(</div>
-  <div class="subtitle" id="desc">
-    Whoa there, traveler! This page packed up and moved to a new home. Don’t worry — we’ll show you the way. 🧭
-    <br>
-    <a href="{{REDIRECT_URL}}">Click here if you are not redirected automatically</a>
-  </div>
-</body>
+	<body>
+		<div class="code" id="code" data-text="301">301</div>
+		<div class="message" id="msg">Moved Permanently :(</div>
+		<div class="subtitle" id="desc">
+			Whoa there, traveler! This page packed up and moved to a new home. Don’t worry — we’ll show you the way. 🧭
+			<br>
+			<a class="redirect" href="{{REDIRECT_URL}}">Click here if you are not redirected automatically</a>
+		</div>
+	</body>
 </html>
