@@ -101,7 +101,7 @@
   <h1>🕸️ Webserv File Upload Test</h1>
 
   <!-- FILE UPLOAD FORM -->
-  <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+  <form class="upload-form" action="/uploads/" method="post" enctype="multipart/form-data">
     <h3>File Upload</h3>
     <div class="info">
       Select a file to upload to the server. Supported file types: images, text files, documents, etc.
@@ -112,16 +112,16 @@
       <input type="file" id="file" name="file" required>
     </div>
     
-    <div class="form-group">
+    <!-- <div class="form-group">
       <label for="description">Description (optional):</label>
       <textarea id="description" name="description" rows="3" placeholder="Add a description for your file..."></textarea>
-    </div>
+    </div> -->
     
     <button type="submit" class="upload-btn">Upload File</button>
   </form>
 
   <!-- TEXT UPLOAD FORM -->
-  <form class="upload-form" action="/upload/text" method="post" enctype="application/x-www-form-urlencoded">
+  <form class="upload-form" action="/uploads/" method="post" enctype="application/x-www-form-urlencoded">
     <h3>Text Upload</h3>
     <div class="info">
       Submit text content directly to create a new file on the server.
