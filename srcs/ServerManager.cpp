@@ -180,12 +180,12 @@ void ServerManager::readFromClient(int clientFd, size_t index) {
 	}
 
 	_clientBuffers[clientFd].append(buffer, bytes);
-	Logger::log(DEBUG, "received " + std::to_string(bytes) +
-						" bytes from fd=" + std::to_string(clientFd));
+	// Logger::log(DEBUG, "received " + std::to_string(bytes) +
+	// 					" bytes from fd=" + std::to_string(clientFd));
 
 
 	while (_clientBuffers[clientFd].find("\r\n\r\n") != std::string::npos) {
-		Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
+		Logger::log(TRACE, "full request received from fd=" + std::to_string(clientFd));
 		handleRequest(clientFd);
 		size_t pos = _clientBuffers[clientFd].find("\r\n\r\n") + 4;
 		_clientBuffers[clientFd].erase(0, pos);
