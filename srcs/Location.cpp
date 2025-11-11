@@ -30,6 +30,7 @@ const std::string& Location::getUploadPath() const { return _uploadPath; }
 // =====================
 void Location::setPath(const std::string& p) { _path = p; }
 void Location::setMethods(const std::vector<std::string>& m) { _methods = m; }
+void Location::setClientMaxBodySize(size_t size) { _clientMaxBodySize = size; }
 void Location::setRedirect(const std::string& r) { _redirect = r; }
 void Location::setRoot(const std::string& r) { _root = r; }
 void Location::setIndex(const std::string& i) { _index = i; }

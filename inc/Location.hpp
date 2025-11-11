@@ -8,6 +8,7 @@ class Location {
 private:
 	std::string							_path;
 	std::vector<std::string>			_methods;
+	size_t								_clientMaxBodySize;
 	std::string							_redirect;
 	std::string							_root;
 	std::string							_index;
@@ -43,6 +44,7 @@ public:
 	// Setters
 	void setPath(const std::string& p);
 	void setMethods(const std::vector<std::string>& m);
+	void setClientMaxBodySize(size_t size);
 	void setRedirect(const std::string& r);
 	void setRoot(const std::string& r);
 	void setIndex(const std::string& i);
