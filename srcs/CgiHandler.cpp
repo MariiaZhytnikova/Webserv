@@ -7,10 +7,9 @@
 
 CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
-HttpResponse CgiHandler::execute(const std::string& scriptPath,
-								const std::string& interpreterPath,
-								const std::string& serverRoot) {
-	std::map<std::string, std::string> env = buildEnv(scriptPath, serverRoot);
+HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::string& interpreterPath, const std::string& serverRoot){
+	std::map<std::string, std::string> env;
+	env = buildEnv(scriptPath, serverRoot);
 	std::string output = runProcess(scriptPath, env, interpreterPath);
 
 	// Parse CGI output: split headers from body
@@ -35,19 +34,18 @@ HttpResponse CgiHandler::execute(const std::string& scriptPath,
 }
 
 std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scriptPath, const std::string& serverRoot) const {
-	
-	std::map<std::string, std::string> env;
 
+	std::map<std::string, std::string> env;
 	// Separate path and query
 	std::string fullPath = _request.getPath();
 	std::string query;
 	size_t qpos = fullPath.find('?');
 	if (qpos != std::string::npos) {
-		query = fullPath.substr(qpos + 1);
-		fullPath = fullPath.substr(0, qpos); // remove query part and leave only clean path
+	query = fullPath.substr(qpos + 1);
+	fullPath = fullPath.substr(0, qpos);
 	}
 
-	// Base CGI variables
+	// Standard CGI vars
 	env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env["SCRIPT_FILENAME"] = scriptPath;
 	env["REQUEST_METHOD"] = _request.getMethod();
@@ -56,11 +54,14 @@ std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scrip
 	env["CONTENT_TYPE"] = _request.getHeader("Content-Type");
 	env["SERVER_PROTOCOL"] = "HTTP/1.1";
 	env["SERVER_SOFTWARE"] = "MyWebServ/1.0";
-	env["REDIRECT_STATUS"] = "200"; // required for PHP-CGI
-	env["SERVER_ROOT"] = serverRoot;
+	env["REDIRECT_STATUS"] = "200";
+
+	char cwd[4096];
+	getcwd(cwd, sizeof(cwd));
+	std::string absRoot = std::string(cwd) + "/" + serverRoot;
+	env["SERVER_ROOT"] = absRoot;
 
 	return env;
-
 }
 
 std::string CgiHandler::runProcess(

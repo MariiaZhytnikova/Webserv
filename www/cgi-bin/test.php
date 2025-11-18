@@ -1,29 +1,31 @@
+#!/usr/bin/env php
 <?php
 
-// Output HTTP header first
-header("Content-Type: text/html");
+// Get root dir passed by C++ server
+$root = getenv("SERVER_ROOT") ?: ".";
+$layoutPath = $root . "/pages/success_layout.html";
 
-// Print basic HTML output
-echo "<!DOCTYPE html>";
-echo "<html>";
-echo "<head><title>CGI PHP Test</title></head>";
-echo "<body>";
-echo "<h1>PHP CGI Test</h1>";
-echo "<p>If you can see this, PHP CGI is working correctly!</p>";
+$html = file_get_contents($layoutPath);
 
-// Show environment variables (useful for debugging CGI)
-echo "<h2>Environment Variables</h2><pre>";
-print_r($_SERVER);
-echo "</pre>";
+// Dynamic content
+$quotes = [
+    "PHP is running through CGI! 🐘",
+    "CGI + PHP = retro and cool 😎",
+    "Your Webserv just executed real PHP code ✨",
+    "Did someone say PHP-Fu? 👊",
+    "The elephant approves this message 🐘💙"
+];
 
-// Handle GET and POST data
-echo "<h2>GET Data</h2><pre>";
-print_r($_GET);
-echo "</pre>";
+$quote = $quotes[array_rand($quotes)];
+$time = date("Y-m-d H:i:s");
 
-echo "<h2>POST Data</h2><pre>";
-print_r($_POST);
-echo "</pre>";
+// Replace template placeholders
+$html = str_replace("{{title}}", "PHP Test", $html);
+$html = str_replace("{{icon}}", "🐘", $html);
+$html = str_replace("{{heading}}", "PHP CGI Executed Successfully", $html);
+$html = str_replace("{{message}}", $quote, $html);
+$html = str_replace("{{time}}", $time, $html);
 
-echo "</body></html>";
+// Output full HTML
+echo $html;
 ?>
