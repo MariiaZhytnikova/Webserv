@@ -1,6 +1,8 @@
 #include "RequestHandler.hpp"
 #include "CgiHandler.hpp"
-#include "StaticFiles.hpp"
+#include "StaticGet.hpp"
+#include "StaticPost.hpp"
+#include "StaticDelete.hpp"
 #include "RequestValidator.hpp"
 #include <algorithm>
 #include <unistd.h>
