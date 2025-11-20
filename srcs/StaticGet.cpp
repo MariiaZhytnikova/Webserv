@@ -1,4 +1,4 @@
-#include "StaticFiles.hpp"
+#include "StaticGet.hpp"
 #include "RequestHandler.hpp"
 #include "Logger.hpp"
 #include "utils.hpp"
@@ -10,6 +10,8 @@
 #include <optional>
 #include <string>
 #include <cstring>
+#include <sys/types.h>
+#include <errno.h>
 
 // Helper: read file into string (binary-safe)
 static bool readFile(const std::string& path, std::string& out) {
@@ -116,119 +118,3 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 	return res;
 }
 
-// For POST/DELETE will be implemented later
-// std::optional<HttpResponse> servePostStatic(
-// 	const HttpRequest& req,
-// 	const Server& srv,
-// 	const Location& loc,
-// 	RequestHandler& handler)
-// {
-// 	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
-// 	if (baseRoot.empty()) baseRoot = "./www";
-// 	if (!baseRoot.empty() && baseRoot.back() == '/') baseRoot.pop_back();
-
-// 	// 🔹 Determine target file path
-// 	std::string reqPath = req.getPath();
-// 	if (reqPath.empty() || reqPath == "/")
-// 		reqPath = "/upload.txt"; // fallback name
-// 	std::string fullPath = baseRoot + reqPath;
-
-// 	// 🔹 Create directory if needed
-// 	struct stat st;
-// 	std::string dirPath = fullPath.substr(0, fullPath.find_last_of('/'));
-// 	if (stat(dirPath.c_str(), &st) != 0) {
-// 		mkdir(dirPath.c_str(), 0755);
-// 	}
-
-// 	// 🔹 Write request body to file
-// 	const std::string& body = req.getBody();
-// 	std::ofstream out(fullPath.c_str(), std::ios::binary);
-// 	if (!out.is_open()) {
-// 		Logger::log(ERROR, "POST failed: cannot open file " + fullPath);
-// 		return handler.makeErrorResponse(srv, 500);
-// 	}
-// 	out.write(body.c_str(), body.size());
-// 	out.close();
-
-// 	// 🔹 Prepare response
-// 	std::ostringstream html;
-// 	html << "<html><body><h1>File uploaded successfully</h1>"
-// 	     << "<p>Saved as: " << fullPath << "</p>"
-// 	     << "<p>Size: " << body.size() << " bytes</p>"
-// 	     << "</body></html>";
-
-// 	HttpResponse res(201, html.str());
-// 	res.setHeader("Content-Type", "text/html");
-// 	res.setHeader("Content-Length", std::to_string(html.str().size()));
-
-// 	Logger::log(INFO, "POST: saved " + fullPath);
-// 	return res;
-// }
-std::optional<HttpResponse> servePostStatic(
-	const HttpRequest& req,
-	const Server& srv,
-	const Location& loc,
-	RequestHandler& handler)
-{
-	// 🔹 Resolve base root
-	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
-	if (baseRoot.empty())
-		baseRoot = "./www";
-	if (!baseRoot.empty() && baseRoot.back() == '/')
-		baseRoot.pop_back();
-
-	// 🔹 Get request path and strip location prefix (e.g. /upload/)
-	std::string reqPath = req.getPath();
-	std::string prefix = loc.getPath();
-	if (!prefix.empty() && reqPath.find(prefix) == 0)
-		reqPath.erase(0, prefix.size());
-
-	if (!reqPath.empty() && reqPath.front() != '/')
-		reqPath.insert(reqPath.begin(), '/');
-	std::cout<<"PREFIX - "<< prefix<<std::endl;
-	std::cout<<"reqPAth - "<< reqPath<<std::endl;
-	std::cout<<"BaseRoot - "<< baseRoot<<std::endl;
-	// 🔹 Build final target path
-	std::string fullPath = baseRoot + reqPath;
-	std::cout<<"full path - "<< fullPath<<std::endl;
-	// 🔹 Ensure target directory exists
-	std::string dirPath = fullPath.substr(0, fullPath.find_last_of('/'));
-	struct stat st;
-	if (stat(dirPath.c_str(), &st) != 0) {
-		if (mkdir(dirPath.c_str(), 0755) != 0) {
-			Logger::log(ERROR, "POST failed: cannot create directory " + dirPath);
-			return handler.makeErrorResponse(srv, 500);
-		}
-	}
-
-	// 🔹 Write request body to file
-	const std::string& body = req.getBody();
-	std::ofstream out(fullPath.c_str(), std::ios::binary);
-	if (!out.is_open()) {
-		Logger::log(ERROR, "POST failed: cannot open file " + fullPath);
-		return handler.makeErrorResponse(srv, 500);
-	}
-
-	out.write(body.c_str(), body.size());
-	out.close();
-
-	// 🔹 Prepare response
-	std::ostringstream html;
-	html << "<html><body><h1>File uploaded successfully</h1>"
-	     << "<p>Saved as: " << fullPath << "</p>"
-	     << "<p>Size: " << body.size() << " bytes</p>"
-	     << "</body></html>";
-
-	HttpResponse res(201, html.str());
-	res.setHeader("Content-Type", "text/html");
-	res.setHeader("Content-Length", std::to_string(html.str().size()));
-
-	Logger::log(INFO, "POST: saved " + fullPath);
-	return res;
-}
-
-
-std::optional<HttpResponse> serveDeleteStatic(const HttpRequest& req, const Server& srv, const Location& loc) {
-	(void)req; (void)srv; (void)loc;
-	return std::nullopt;
-}

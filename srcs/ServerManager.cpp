@@ -154,43 +154,144 @@ void ServerManager::acceptNewClient(int listenFd) {
 }
 
 
+// void ServerManager::readFromClient(int clientFd, size_t index) {
+// 	char buffer[4096];
+// 	ssize_t bytes = read(clientFd, buffer, sizeof(buffer));
+
+// 	if (bytes < 0) {
+// 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+// 			Logger::log(DEBUG, "waiting for request...");
+// 			return;
+// 		}
+// 		Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
+// 						   ": " + std::string(strerror(errno)));
+// 		close(clientFd);
+// 		_clientBuffers.erase(clientFd);
+// 		_fds.erase(_fds.begin() + index);
+// 		return;
+// 	}
+
+// 	if (bytes == 0) {
+// 		Logger::log(INFO, "client disconnected due to inactivity: fd=" + std::to_string(clientFd));
+// 		close(clientFd);
+// 		_clientBuffers.erase(clientFd);
+// 		_fds.erase(_fds.begin() + index);
+// 		return;
+// 	}
+
+// 	_clientBuffers[clientFd].append(buffer, bytes);
+// 	Logger::log(DEBUG, "received " + std::to_string(bytes) +
+// 						" bytes from fd=" + std::to_string(clientFd));
+
+
+// 	while (_clientBuffers[clientFd].find("\r\n\r\n") != std::string::npos) {
+// 		Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
+// 		handleRequest(clientFd);
+// 		size_t pos = _clientBuffers[clientFd].find("\r\n\r\n") + 4;
+// 		_clientBuffers[clientFd].erase(0, pos);
+// 	}
+// }
 void ServerManager::readFromClient(int clientFd, size_t index) {
-	char buffer[4096];
-	ssize_t bytes = read(clientFd, buffer, sizeof(buffer));
+	(void)index;
+    char buffer[4096];
+    ssize_t bytes = recv(clientFd, buffer, sizeof(buffer), 0);
 
-	if (bytes < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			Logger::log(DEBUG, "waiting for request...");
-			return;
-		}
-		Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
-						   ": " + std::string(strerror(errno)));
-		close(clientFd);
-		_clientBuffers.erase(clientFd);
-		_fds.erase(_fds.begin() + index);
-		return;
-	}
+    // ----------------------------
+    // Read errors or disconnect
+    // ----------------------------
+    if (bytes < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            return; // just no data now
+        Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
+                           ": " + std::string(strerror(errno)));
+        cleanupClient(clientFd);
+        return;
+    }
 
-	if (bytes == 0) {
-		Logger::log(INFO, "client disconnected due to inactivity: fd=" + std::to_string(clientFd));
-		close(clientFd);
-		_clientBuffers.erase(clientFd);
-		_fds.erase(_fds.begin() + index);
-		return;
-	}
+    if (bytes == 0) {
+        Logger::log(INFO, "client disconnected: fd=" + std::to_string(clientFd));
+        cleanupClient(clientFd);
+        return;
+    }
 
-	_clientBuffers[clientFd].append(buffer, bytes);
-	// Logger::log(DEBUG, "received " + std::to_string(bytes) +
-	// 					" bytes from fd=" + std::to_string(clientFd));
+    // Append newly read data
+    std::string &buf = _clientBuffers[clientFd];
+    buf.append(buffer, bytes);
 
+    // Try to parse as many full HTTP requests as possible (pipelining)
+    while (true) {
+        // -------------------------------------
+        // 1) Find end of headers: "\r\n\r\n"
+        // -------------------------------------
+        size_t headerEnd = buf.find("\r\n\r\n");
+        if (headerEnd == std::string::npos) {
+            // headers not yet fully received
+            return;
+        }
 
-	while (_clientBuffers[clientFd].find("\r\n\r\n") != std::string::npos) {
-		Logger::log(TRACE, "full request received from fd=" + std::to_string(clientFd));
-		handleRequest(clientFd);
-		size_t pos = _clientBuffers[clientFd].find("\r\n\r\n") + 4;
-		_clientBuffers[clientFd].erase(0, pos);
-	}
+        // Extract headers block
+        std::string headersPart = buf.substr(0, headerEnd + 4);
+
+        // -------------------------------------
+        // 2) Parse Content-Length (if present)
+        // -------------------------------------
+        size_t contentLength = 0;
+        {
+            const std::string key = "Content-Length:";
+            size_t pos = headersPart.find(key);
+            if (pos != std::string::npos) {
+                pos += key.length();
+                // skip spaces
+                while (pos < headersPart.size() &&
+                       (headersPart[pos] == ' ' || headersPart[pos] == '\t'))
+                    pos++;
+                size_t end = headersPart.find("\r\n", pos);
+                std::string val = headersPart.substr(pos, end - pos);
+                contentLength = static_cast<size_t>(std::atoi(val.c_str()));
+            }
+        }
+
+        // -------------------------------------
+        // 3) Compute full request size needed
+        // -------------------------------------
+        size_t totalNeeded = headerEnd + 4 + contentLength;
+
+        // Not all data arrived yet
+        if (buf.size() < totalNeeded)
+            return;
+
+        // -------------------------------------
+        // 4) Extract full raw HTTP request
+        // -------------------------------------
+        std::string rawRequest = buf.substr(0, totalNeeded);
+
+        Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
+
+        // -------------------------------------
+        // 5) Handle this request
+        // -------------------------------------
+        try {
+            int listenFd = _clientToListenFd[clientFd];
+            int listenPort = _portSocketMap[listenFd];
+
+            RequestHandler handler(*this, rawRequest, clientFd);
+            handler.handle(listenPort);
+        }
+        catch (const std::exception &e) {
+            Logger::log(ERROR, "request handling error: " + std::string(e.what()));
+            cleanupClient(clientFd);
+            return;
+        }
+
+        // -------------------------------------
+        // 6) Remove processed request from buffer
+        // -------------------------------------
+        buf.erase(0, totalNeeded);
+
+        // Continue loop — maybe pipelined requests follow
+    }
 }
+
 
 void ServerManager::handleRequest(int clientFd) {
 	try {
