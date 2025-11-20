@@ -7,7 +7,9 @@ Server::Server()
 	  _root(""),
 	  _index("index.html"),
 	  _isDefault(false),
-	  _autoindex(false) { }
+	  _autoindex(false),
+	  _hasListen(false),
+	  _hasRoot(false)  { }
 
 // =====================
 // Getters
@@ -39,13 +41,24 @@ void Server::setClientMaxBodySize(size_t size) { _clientMaxBodySize = size; }
 void Server::setDefault(bool value) { _isDefault = value; }
 void Server::setAutoindex(bool value) { _autoindex = value; }
 void Server::setMethod(const std::vector<std::string>& methods) { _methods = methods; }
+void Server::setListenFlag() { _hasListen = true; }
+void Server::setRootFlag() { _hasRoot = true; }
 
 void Server::addLocation(const Location& loc) { _locations.push_back(loc); }
 void Server::addLocation(Location&& loc) { _locations.push_back(std::move(loc)); }
 
+bool Server::hasListen() const { return _hasListen; }
+bool Server::hasRoot() const { return _hasRoot; }
+
 #include <iostream>
 
 Location Server::findLocation(const std::string& path) const {
+
+	// No locations
+	if (_locations.empty()) {
+		return Location();
+	}
+
 	Location const* bestMatch = NULL;
 
 	// Exact match

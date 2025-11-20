@@ -21,10 +21,10 @@ RequestHandler::RequestHandler(ServerManager& manager,
 
 void RequestHandler::handle(int listenPort) {
 	Server& srv = matchServer(_request, listenPort);
-
+	Logger::log(INFO, "host: " + _request.getHeader("host"));
 	try {
 		std::string sessionId = _request.returnHeaderValue("cookie", "session_id");
-	
+
 		// 🔹 Close connection if server request it
 		if (_request.isHeaderValue("connection", "close"))
 			_keepAlive = false;
@@ -34,16 +34,14 @@ void RequestHandler::handle(int listenPort) {
 			sessionId = Session::generateSessionId();
 			
 		}
+
 		Session& session = _serverManager.getSessionManager().getOrCreate(sessionId);
 		session.set("last_path", _request.getPath());
-
 		// 🔹 Find matching location
 		Location loc = srv.findLocation(_request.getPath());
-
 		// 🔹 Check request
 		if (RequestValidator::check(*this, srv,loc) == false)
 			return;
-
 		// 🔹 Detect CGI <- Janeeeeeeee!!!!!
 		std::string path = _request.getPath();
 		std::string ext = getFileExtension(path);
@@ -119,7 +117,7 @@ bool sendAll(int clientFd, const std::string &data) {
 		}
 		totalSent += static_cast<size_t>(sent);
 	}
-	Logger::log(DEBUG, std::string("bytes sent: ") + std::to_string(totalSent));
+	// Logger::log(TRACE, std::string("bytes sent: ") + std::to_string(totalSent));
 	return true;
 }
 
@@ -128,12 +126,12 @@ void RequestHandler::sendResponse(const HttpResponse& other) {
 	HttpResponse res = other;
 
 	if (_keepAlive == false) {
-		Logger::log(INFO, "connection closed by client request fd=" + std::to_string(_clientFd));
+		// Logger::log(INFO, "connection closed by client request fd=" + std::to_string(_clientFd));
 		res.setHeader("Connection", "close");
 	}
 
 	std::string serialized = res.serialize();
-	Logger::log(DEBUG, std::string("response size: ") + std::to_string(serialized.size()));
+	// Logger::log(DEBUG, std::string("response size: ") + std::to_string(serialized.size()));
 
 	bool success = sendAll(_clientFd, serialized);
 	if (!success)
@@ -224,3 +222,10 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 // File not writable → 500 Internal Server Error
 
 // File already exists on POST (if overwrite not allowed) → 409 Conflict
+
+// ADD botton for location /too_large
+
+// add to config 
+	// 	location /too_large/ {
+	// 	client_max_body_size 1B;
+	// }

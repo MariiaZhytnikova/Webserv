@@ -20,6 +20,7 @@ ConfigLineType ConfigParser::getLineType(const std::string& line) {
 
 LocationDirective ConfigParser::getLocationDirective(const std::string& line) {
 	if (line.rfind("allow_methods", 0) == 0) return ALLOW_METHODS;
+	if (line.rfind("client_max_body_size", 0) == 0) return CLIENT_MAX_BODY_SIZE_LOC;
 	if (line.rfind("root", 0) == 0) return ROOT;
 	if (line.rfind("index", 0) == 0) return INDEX;
 	if (line.rfind("autoindex", 0) == 0) return AUTOINDEX;
@@ -48,6 +49,14 @@ void ConfigParser::parse() {
 	if (!file.is_open()) {
 		throw std::runtime_error("cannot open config file: " + _config_path);
 	}
+
+	// Check if file is empty
+	file.seekg(0, std::ios::end);
+	if (file.tellg() == 0) {
+		throw std::runtime_error("configuration file is empty: " + _config_path);
+	}
+	file.seekg(0, std::ios::beg); // reset to start for reading
+
 	std::string raw;
 
 	while (std::getline(file, raw)) {
@@ -66,6 +75,15 @@ void ConfigParser::parse() {
 				throw std::runtime_error("unexpected line outside server block: " + trimmed);
 		}
 	}
+	for (size_t i = 0; i < _servers.size(); ++i) {
+		if (!_servers[i].hasListen()) {
+			throw std::runtime_error("Server #" + std::to_string(i+1) + " missing 'listen' directive");
+		}
+		if (!_servers[i].hasRoot()) {
+			throw std::runtime_error("Server #" + std::to_string(i+1) + " missing 'root' directive");
+		}
+	}
+
 	setDefaultServers();
 }
 
@@ -131,6 +149,9 @@ void ConfigParser::parseLocationDirective(const std::string& line, Location& loc
 		case ALLOW_METHODS:
 			loc.setMethods(parseMethods(line));
 			break;
+		case CLIENT_MAX_BODY_SIZE_LOC:
+			loc.setClientMaxBodySize(parseSize(parseValue(line)));
+			break;
 		case ROOT:
 			loc.setRoot(parseValue(line));
 			break;
@@ -172,6 +193,7 @@ void ConfigParser::parseLocationDirective(const std::string& line, Location& loc
 void ConfigParser::parseServerDirective(const std::string& line, Server& server) {
 	switch (getServerDirective(line)) {
 		case LISTEN: {
+			server.setListenFlag();
 			std::string value = parseValue(line);	// "127.0.0.1:8080" or "8080"
 			size_t colon = value.find(':');
 			if (colon != std::string::npos) {
@@ -200,6 +222,7 @@ void ConfigParser::parseServerDirective(const std::string& line, Server& server)
 			server.setClientMaxBodySize(parseSize(parseValue(line)));
 			break;
 		case ROOT_SERVER:
+			server.setRootFlag();
 			server.setRoot(parseValue(line));
 			break;
 		case INDEX_SERVER:
