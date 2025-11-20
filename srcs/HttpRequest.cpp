@@ -75,8 +75,8 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 		_headers.insert(std::make_pair(key, value));
 	}
 
-	// for (auto &pairs : _headers)
-	// 	Logger::log(TRACE, std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
+	for (auto &pairs : _headers)
+		Logger::log(TRACE, std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
 
 }
 
