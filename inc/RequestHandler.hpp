@@ -52,6 +52,10 @@ public:
 
 	const HttpRequest& getRequest() const;
 	HttpResponse makeErrorResponse(const Server& srv, int code);
+	HttpResponse makeSuccessResponse(
+		const Server& srv,
+		const std::string& name,
+		const std::map<std::string, std::string>& vars);
 	void sendResponse(const HttpResponse& res);
 };
 

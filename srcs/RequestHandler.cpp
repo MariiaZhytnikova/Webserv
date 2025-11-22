@@ -186,6 +186,45 @@ HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
 	return res;
 }
 
+// HttpResponse RequestHandler::makePostResponse(const Server& srv, int code) {
+// 	std::string filePath;
+
+
+// 	filePath = srv.getRoot() + "/pages/202.html";
+
+// 	std::ifstream file(filePath.c_str(), std::ios::binary);
+// 	std::ostringstream buffer;
+// 	// 🔹 Check if file exist and not epmty
+// 	if (file.good()) {
+// 		std::ostringstream tmp;
+// 		tmp << file.rdbuf();
+// 		std::string content = tmp.str();
+
+// 	// 🔹 Check html exists
+// 		if (!content.empty() &&
+// 			(content.find("<html") != std::string::npos ||
+// 			content.find("<body") != std::string::npos)) {
+// 			buffer.str(content);
+// 			Logger::log(INFO, "Custom success page used: " + filePath);
+// 		} else {
+// 			Logger::log(WARNING, "Invalid error page content, using fallback");
+// 		}
+// 	}
+// 	if (buffer.str().empty()) {
+// 	// 🔹 Minimal inline fallback
+// 		Logger::log(INFO, "Fallback error page triggered");
+// 		buffer.str("");
+// 		buffer << "<html><body><h1>" << code << " "
+// 			<< HttpResponse::statusMessageForCode(code)
+// 			<< "</h1></body></html>";
+// 	}
+// 	std::string body = buffer.str();
+// 	HttpResponse res(code, body);
+// 	res.setHeader("Content-Type", "text/html");
+// 	res.setHeader("Content-Length", std::to_string(body.size()));
+// 	return res;
+// }
+
 // GET, POST, DELETE methods
 void RequestHandler::handleGet(Server& srv, Location& loc) {
 	if (auto res = serveGetStatic(_request, srv, loc, *this)) {
