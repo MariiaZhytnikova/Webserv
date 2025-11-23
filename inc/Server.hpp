@@ -11,7 +11,7 @@ private:
 	int							_port;
 	std::vector<std::string>	_serverNames;
 	std::map<int, std::string>	_errorPages;
-	size_t						_clientMaxBodySize;
+	size_t						_clientMaxBodySize; 
 	std::string					_root;
 	std::string					_index;
 	bool						_isDefault;
