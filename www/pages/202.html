@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Upload OK</title>
-    <link rel="stylesheet" href="/css/style.css">
+	<title>Upload OK</title>
+	<link rel="stylesheet" href="/css/errors.css">
 </head>
 <body>
-    <h1>File uploaded successfully!</h1>
+	<h1>File uploaded successfully!</h1>
 
-    <p>Saved as: <strong>{{filename}}</strong></p>
-    <p>Size: {{size}} bytes</p>
-
-    <a href="/">Back to home</a>
+	<p>Saved as: <strong>{{filename}}</strong></p>
+	<p>Size: {{size}} bytes</p>
+	<a class="btn" href="/pages/upload.html" style="margin-top: 20px;">
+		Back to Uploads
+	</a>
+	<a class="btn" href="/">Back to home</a>
 </body>
 </html>

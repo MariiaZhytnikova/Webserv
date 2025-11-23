@@ -186,44 +186,54 @@ HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
 	return res;
 }
 
-// HttpResponse RequestHandler::makePostResponse(const Server& srv, int code) {
-// 	std::string filePath;
+HttpResponse RequestHandler::makeSuccessResponse(
+		const Server& srv,
+		const std::map<std::string, std::string>& vars)
+{
+	// Always load a single HTML file — no config
+	std::string filePath = srv.getRoot() + "/pages/202.html";
 
+	std::ifstream file(filePath.c_str(), std::ios::binary);
+	std::ostringstream buffer;
 
-// 	filePath = srv.getRoot() + "/pages/202.html";
+	// Load file if exists
+	if (file.good()) {
+		std::ostringstream tmp;
+		tmp << file.rdbuf();
+		std::string content = tmp.str();
 
-// 	std::ifstream file(filePath.c_str(), std::ios::binary);
-// 	std::ostringstream buffer;
-// 	// 🔹 Check if file exist and not epmty
-// 	if (file.good()) {
-// 		std::ostringstream tmp;
-// 		tmp << file.rdbuf();
-// 		std::string content = tmp.str();
+		if (!content.empty() &&
+			(content.find("<html") != std::string::npos ||
+			 content.find("<body") != std::string::npos))
+		{
+			buffer.str(content);
+			Logger::log(INFO, "Success page used: " + filePath);
+		}
+		else {
+			Logger::log(WARNING, "Invalid success page content, using fallback");
+		}
+	}
+	// Fallback if file missing or invalid
+	if (buffer.str().empty()) {
+		Logger::log(INFO, "Fallback success page triggered");
+		buffer.str("");
+		buffer << "<html><body><h1>Success</h1></body></html>";
+	}
 
-// 	// 🔹 Check html exists
-// 		if (!content.empty() &&
-// 			(content.find("<html") != std::string::npos ||
-// 			content.find("<body") != std::string::npos)) {
-// 			buffer.str(content);
-// 			Logger::log(INFO, "Custom success page used: " + filePath);
-// 		} else {
-// 			Logger::log(WARNING, "Invalid error page content, using fallback");
-// 		}
-// 	}
-// 	if (buffer.str().empty()) {
-// 	// 🔹 Minimal inline fallback
-// 		Logger::log(INFO, "Fallback error page triggered");
-// 		buffer.str("");
-// 		buffer << "<html><body><h1>" << code << " "
-// 			<< HttpResponse::statusMessageForCode(code)
-// 			<< "</h1></body></html>";
-// 	}
-// 	std::string body = buffer.str();
-// 	HttpResponse res(code, body);
-// 	res.setHeader("Content-Type", "text/html");
-// 	res.setHeader("Content-Length", std::to_string(body.size()));
-// 	return res;
-// }
+	// Template replacement: {{key}}
+	std::string html = buffer.str();
+	for (const auto &p : vars) {
+		std::string tag = "{{" + p.first + "}}";
+		size_t pos;
+		while ((pos = html.find(tag)) != std::string::npos) {
+			html.replace(pos, tag.length(), p.second);
+		}
+	}
+	HttpResponse res(200, html);
+	res.setHeader("Content-Type", "text/html");
+	res.setHeader("Content-Length", std::to_string(html.size()));
+	return res;
+}
 
 // GET, POST, DELETE methods
 void RequestHandler::handleGet(Server& srv, Location& loc) {

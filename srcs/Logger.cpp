@@ -27,7 +27,7 @@ std::string Logger::colorForLevel(LogLevel level) {
 	switch (level) {
 		case INFO:		return "\033[32m"; // green
 		case TRACE:		return "\033[34m"; // blue
-		case DEBUG:		return "\033[36m"; // cyan
+		case DEBUG:		return "\033[1;36m"; // cyan
 		case WARNING:	return "\033[33m"; // yellow
 		case ERROR:		return "\033[31m"; // red
 		default:		return "\033[0m";
