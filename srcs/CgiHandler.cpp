@@ -9,6 +9,10 @@ CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
 HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::string& interpreterPath, const std::string& serverRoot){
 	std::map<std::string, std::string> env;
+
+	if (access(scriptPath.c_str(), F_OK) != 0) {
+		throw std::runtime_error("CGI script does not exist");
+	}
 	env = buildEnv(scriptPath, serverRoot);
 	std::string output = runProcess(scriptPath, env, interpreterPath);
 
