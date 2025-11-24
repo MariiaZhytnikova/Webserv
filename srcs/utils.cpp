@@ -168,3 +168,43 @@ std::string getFileExtension(const std::string& path) {
 	return path.substr(dot); // includes the dot, e.g. ".php"
 }
 
+std::string listFilesPlain(const std::string& dir) {
+	DIR* d = opendir(dir.c_str());
+	if (!d) return "";
+
+	std::ostringstream out;
+	struct dirent* e;
+
+	while ((e = readdir(d))) {
+		// ignore hidden files "." and ".."
+		if (e->d_name[0] == '.') continue;
+
+		out << e->d_name << "\n";
+	}
+
+	closedir(d);
+	return out.str();
+}
+
+std::string urlDecode(const std::string &src) {
+	std::string ret;
+	ret.reserve(src.size());
+
+	for (std::size_t i = 0; i < src.size(); ++i) {
+
+		if (src[i] == '%' && i + 2 < src.size()) {
+			int value = 0;
+			std::sscanf(src.substr(i + 1, 2).c_str(), "%x", &value);
+			ret += static_cast<char>(value);
+			i += 2;
+		}
+		else if (src[i] == '+') {
+			ret += ' ';
+		}
+		else {
+			ret += src[i];
+		}
+	}
+
+	return ret;
+}

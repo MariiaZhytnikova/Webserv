@@ -254,13 +254,13 @@ void RequestHandler::handlePost(Server& srv, Location& loc) {
 }
 
 void RequestHandler::handleDelete(Server& srv, Location& loc) {
-	// TODO: implement deleting file/resource
-	(void)loc;
-	(void)srv;
-	std::string body = "<h1>DELETE received</h1>";
-	HttpResponse res(200, body);
-	res.setHeader("Content-Type", "text/html");
-	sendResponse(res);
+	if (auto res = serveDeleteStatic(_request, srv, loc, *this)) {
+		sendResponse(*res);
+		return;
+	}
+
+	// если DELETE не обработан — возвращаем ошибку
+	sendResponse(makeErrorResponse(srv, 404));
 }
 
 
