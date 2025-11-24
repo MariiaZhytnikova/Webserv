@@ -106,7 +106,12 @@ p.lead {
     background:var(--accent);
     color:#071226;
     font-weight:600;
-    text-decoration:none
+    text-decoration:none;
+    &:hover {
+		background: #00416A;  /* fallback for old browsers */
+        background: -webkit-linear-gradient(to right, #FFE000, #799F0C);  /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to right, #FFE000, #799F0C); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    }
 }
 
 .row {
@@ -217,8 +222,4 @@ a.inline-link {
     max-width: 480px;
   }
 
-a.btn:hover {
-  background: #e0a800;
-  text-decoration: none;   /* make sure hover also stays clean */
-}
 @media (max-width:880px){.hero{grid-template-columns:1fr}}

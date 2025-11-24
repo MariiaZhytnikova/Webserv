@@ -21,23 +21,48 @@ std::optional<HttpResponse> servePostStatic(
 {
 	// ---------- Resolve base root ----------
 	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
-	if (baseRoot.empty()) baseRoot = "./www";
-	if (baseRoot.back() == '/') baseRoot.pop_back();
+	
+	// if (baseRoot.empty()) baseRoot = "./www";
+	// if (baseRoot.back() == '/') baseRoot.pop_back();
 
 	// ---------- Resolve request path ----------
-	std::string reqPath = req.getPath();
+	// std::string reqPath = req.getPath();
+	// std::string prefix = loc.getPath();
+	// if (!prefix.empty() && reqPath.find(prefix) == 0)
+	// 	reqPath.erase(0, prefix.size());
+	// if (!reqPath.empty() && reqPath.front() != '/')
+	// 	reqPath.insert(reqPath.begin(), '/');
+	//std::string fullPath = baseRoot + reqPath;
+	
+
+	// 3) Remove prefix ("/uploads/")
+	// ensure baseRoot ends with "/"
+	if (!baseRoot.empty() && baseRoot.back() != '/')
+		baseRoot += '/';
+
+	// e.g. uri = "/uploads/file.txt"
+	std::string uri = req.getPath();
+
+	// e.g. prefix = "/uploads/"
 	std::string prefix = loc.getPath();
-	if (!prefix.empty() && reqPath.find(prefix) == 0)
-		reqPath.erase(0, prefix.size());
-	if (!reqPath.empty() && reqPath.front() != '/')
-		reqPath.insert(reqPath.begin(), '/');
 
-	std::string fullPath = baseRoot + reqPath;
+	// ensure prefix ends with "/"
+	if (!prefix.empty() && prefix.back() != '/')
+		prefix += '/';
 
+	// ensure prefix starts with "/"
+	if (!prefix.empty() && prefix.front() != '/')
+		prefix = "/" + prefix;
+
+	// remove prefix from uri
+	// "/uploads/file.txt" → "file.txt"
+	if (uri.find(prefix) == 0)
+   		uri.erase(0, prefix.size());
+	std::string fullPath = baseRoot + prefix.substr(1) + uri;
 	// Logger::log(DEBUG, "PREFIX = " + prefix);
 	// Logger::log(DEBUG, "reqPath = " + reqPath);
 	// Logger::log(DEBUG, "baseRoot = " + baseRoot);
-	// Logger::log(DEBUG, "fullPath = " + fullPath);
+	Logger::log(DEBUG, "fullPath = " + fullPath);
 
 	// ---------- Helpers ----------
 	auto sanitizeFilename = [](const std::string &n) {

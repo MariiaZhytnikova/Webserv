@@ -6,6 +6,7 @@
 #include <utility>
 #include <algorithm>
 #include <sstream>
+#include <dirent.h>
 
 bool isDirective(const std::string& line);
 std::string trimLine(const std::string& raw);
@@ -18,3 +19,4 @@ size_t parseSize(const std::string& value);
 std::pair<int, std::string> parseReturn(const std::string& line);
 
 std::string getFileExtension(const std::string& path);
+std::string urlDecode(const std::string &src);

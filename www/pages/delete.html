@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="/css/errors.css">
+	<title>File Manager – DELETE</title>
+</head>
+
+<body>
+
+	<h1>Uploaded Files</h1>
+	<table id="filetable" class="test">
+		<thead class="test">
+		<tr><th>File</th><th>Action</th></tr>
+		</thead>
+		<tbody></tbody>
+	</table>
+
+	<div id="msg"></div>
+	<a class="btn" href="/pages/upload.html" style="margin-top: 20px;">
+			Back to Uploads
+	</a>
+	<a class="btn" href="/">Back to home</a>
+	</body>
+
+<script>
+	 	console.log("DELETE PAGE JS LOADED");
+		async function loadFiles() {
+		const res = await fetch('/uploads/');
+		console.log("res", res);
+		const text = await res.text();
+		console.log("text", text);
+		// text contains the directory listing you return
+		// Example:
+		// file1.txt\nfile2.png\n
+
+		const lines = text.split('\n').filter(x => x.trim() !== '');
+		console.log("LINES2", lines);
+		const tbody = document.querySelector("#filetable tbody");
+		tbody.innerHTML = "";
+
+		for (let file of lines) {
+			const row = document.createElement("tr");
+
+			row.innerHTML = `
+				<td>${file}</td>
+				<td><button class="del-btn" onclick="deleteFile('${file}')">Delete</button></td>
+			`;
+			tbody.appendChild(row);
+		}
+	}
+
+	async function deleteFile(filename) {
+		const res = await fetch('/uploads/' + encodeURIComponent(filename), {
+			method: 'DELETE'
+		});
+
+		if (res.status === 204 || res.status === 200) {
+			document.getElementById('msg').innerHTML =
+				"✔ File deleted: " + filename;
+			loadFiles();
+		} else {
+			document.getElementById('msg').innerHTML =
+				"❌ Error deleting: " + filename + " (status " + res.status + ")";
+		}
+	}
+
+	loadFiles();
+</script>
+
+</body>
+</html>
