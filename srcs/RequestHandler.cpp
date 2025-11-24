@@ -50,7 +50,7 @@ void RequestHandler::handle(int listenPort) {
 		if (loc.getCgiExtensions().count(ext)) {
 			std::string interpreter = loc.getCgiExtensions().at(ext);
 			CgiHandler cgi(_request);
-			HttpResponse res = cgi.execute(srv.getRoot() + path, interpreter);
+			HttpResponse res = cgi.execute(srv.getRoot() + path, interpreter, srv.getRoot());
 			sendResponse(res);
 			return;
 		}
