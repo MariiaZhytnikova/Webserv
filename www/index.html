@@ -12,6 +12,10 @@
 		<link rel="stylesheet" href="css/style.css">
 	</head>
 	<body>
+		<input type="checkbox" id="theme-toggle" hidden>
+		<label for="theme-toggle" class="theme-switch">
+			<div class="thumb"></div>
+		</label>
 		<div class="container">
 			<header>
 				<div class="brand">
@@ -21,11 +25,6 @@
 						<div class="muted" style="font-size:13px">Custom HTTP server — 42 project</div>
 					</div>
 				</div>
-				<nav>
-					<a href="#features">Light</a>
-					<a href="#try">/</a>
-					<a href="#team">Dark</a>
-				</nav>
 			</header>
 
 			<main class="hero">
@@ -85,9 +84,17 @@ printf "KILL / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\nConnecti
 						<div style="margin-top:16px">
 							<h4 style="margin:0 0 8px 0">Team</h4>
 							<div class="team">
-								<div class="member"><strong>Mariia Z.</strong><div class="muted">mzhitnik</div></div>
-								<div class="member"><strong>Evgeniia K.</strong><div class="muted">ekashirs</div></div>
-								<div class="member"><strong>Marina Z.</strong><div class="muted">mzhivoto</div></div>
+								<a class="member" href="https://github.com/MariiaZhytnikova" target="_blank">
+									<strong>Mariia Z. <span class="arrow">  ↗</span></strong>
+								</a>
+						
+								<a class="member" href="https://github.com/janeyears" target="_blank">
+									<strong>Evgeniia K. <span class="arrow">  ↗</span></strong>
+								</a>
+						
+								<a class="member" href="https://github.com/marinezh" target="_blank">
+									<strong>Marina Z.<span class="arrow">  ↗</span></strong>
+								</a>
 							</div>
 						</div>
 					</div>
