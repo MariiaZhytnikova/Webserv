@@ -43,3 +43,9 @@ std::string HttpResponse::serialize() const {
 void HttpResponse::setHeader(const std::string& key, const std::string& value) {
 	_headers[key] = value;
 }
+
+void HttpResponse::setBody(const std::string& body) { _body = body; }
+
+const std::string& HttpResponse::getBody() const { return _body; }
+int HttpResponse::getStatusCode() const { return _statusCode; }
+const std::map<std::string, std::string>& HttpResponse::getHeaders() const { return _headers; }

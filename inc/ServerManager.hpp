@@ -20,7 +20,7 @@ private:
 
 	void setupSockets();				// create/bind/listen
 	void acceptNewClient(int listenFd);
-	void readFromClient(int clientFd, size_t index);
+	void readFromClient(int clientFd);
 	void handleRequest(int clientFd);
 
 public:

@@ -40,8 +40,29 @@ void ServerManager::setupSockets() {
 	for (size_t i = 0; i < _servers.size(); ++i) {
 		Server& srv = _servers[i];
 		int port = srv.getListenPort();
-		if (_portSocketMap.find(port) != _portSocketMap.end())
-			continue; // socket for this port already exists
+		// if (_portSocketMap.find(port) != _portSocketMap.end())
+		// 	continue; // socket for this port already exists
+
+		// check if a server is already bound to THIS port
+		bool portUsed = false;
+		for (std::map<int,int>::iterator it = _portSocketMap.begin();
+			it != _portSocketMap.end(); ++it)
+		{
+			if (it->second == port) {
+				portUsed = true;
+				Logger::log(DEBUG,
+					"Skipping creating socket for port " + std::to_string(port) +
+					" (already bound on fd=" + std::to_string(it->first) + ")");
+				break;
+			}
+		}
+
+		if (portUsed) {
+			continue;
+		}
+
+		Logger::log(DEBUG,
+			"Creating NEW socket for port " + std::to_string(port));
 
 		// Address family: IPv4 (AF_INET)
 		// SOCK_STREAM: TCP (reliable, connection-oriented)
@@ -71,25 +92,17 @@ void ServerManager::setupSockets() {
 		};
 */
 		sockaddr_in addr;
-			// IPv4
+		memset(&addr, 0, sizeof(addr));
+
 		addr.sin_family = AF_INET;
-			
-		addr.sin_addr.s_addr = INADDR_ANY;
-			// Host TO Network Short, Converts the port from host byte order to network byte order
 		addr.sin_port = htons(port);
 
-		// accept connections on all network interfaces or srv.getHost()
-		in_addr_t ip;
 		if (srv.getHost() == "*" || srv.getHost().empty()) {
-			ip = INADDR_ANY;
+			addr.sin_addr.s_addr = INADDR_ANY;
 		} else {
-			// Internet presentation to network”
-			// converts an IP address from string to its binary form used by the OS for sockets
-			if (inet_pton(AF_INET, srv.getHost().c_str(), &ip) <= 0)
+			if (inet_pton(AF_INET, srv.getHost().c_str(), &addr.sin_addr) <= 0)
 				throw std::runtime_error("invalid host: " + srv.getHost());
 		}
-		addr.sin_addr.s_addr = ip;
-
 		// associates the socket with an IP address and port
 		// failure occurs if the port is already in use, you don’t have permission, or the IP is invalid
 		if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0)
@@ -153,143 +166,129 @@ void ServerManager::acceptNewClient(int listenFd) {
 	_clientToListenFd[clientFd] = listenFd;
 }
 
+void ServerManager::readFromClient(int clientFd) {
+	char buffer[4096];
+	ssize_t bytes = recv(clientFd, buffer, sizeof(buffer), 0);
 
-// void ServerManager::readFromClient(int clientFd, size_t index) {
-// 	char buffer[4096];
-// 	ssize_t bytes = read(clientFd, buffer, sizeof(buffer));
+	// ----------------------------
+	// Read errors or disconnect
+	// ----------------------------
+	if (bytes < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return; // just no data now
+		Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
+						   ": " + std::string(strerror(errno)));
+		cleanupClient(clientFd);
+		return;
+	}
 
-// 	if (bytes < 0) {
-// 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-// 			Logger::log(DEBUG, "waiting for request...");
-// 			return;
-// 		}
-// 		Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
-// 						   ": " + std::string(strerror(errno)));
-// 		close(clientFd);
-// 		_clientBuffers.erase(clientFd);
-// 		_fds.erase(_fds.begin() + index);
-// 		return;
-// 	}
+	if (bytes == 0) {
+		Logger::log(INFO, "client disconnected: fd=" + std::to_string(clientFd));
+		cleanupClient(clientFd);
+		return;
+	}
 
-// 	if (bytes == 0) {
-// 		Logger::log(INFO, "client disconnected due to inactivity: fd=" + std::to_string(clientFd));
-// 		close(clientFd);
-// 		_clientBuffers.erase(clientFd);
-// 		_fds.erase(_fds.begin() + index);
-// 		return;
-// 	}
+	// Append newly read data
+	std::string &buf = _clientBuffers[clientFd];
+	buf.append(buffer, bytes);
 
-// 	_clientBuffers[clientFd].append(buffer, bytes);
-// 	Logger::log(DEBUG, "received " + std::to_string(bytes) +
-// 						" bytes from fd=" + std::to_string(clientFd));
+	// Logger::log(WARNING, "My buffer in readFromClient:" + buf);
 
+	// Try to parse as many full HTTP requests as possible (pipelining)
+	while (true) {
+		// Find header terminator
+		size_t delimiterLen = 4;
+		size_t headerEnd = buf.find("\r\n\r\n");
 
-// 	while (_clientBuffers[clientFd].find("\r\n\r\n") != std::string::npos) {
-// 		Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
-// 		handleRequest(clientFd);
-// 		size_t pos = _clientBuffers[clientFd].find("\r\n\r\n") + 4;
-// 		_clientBuffers[clientFd].erase(0, pos);
-// 	}
-// }
-void ServerManager::readFromClient(int clientFd, size_t index) {
-	(void)index;
-    char buffer[4096];
-    ssize_t bytes = recv(clientFd, buffer, sizeof(buffer), 0);
+		// -------------------------------------
+		// 1) Find end of headers: "\r\n\r\n"
+		// -------------------------------------
+		if (headerEnd == std::string::npos) {
+			headerEnd = buf.find("\n\n");
+			delimiterLen = 2;
+		}
+		if (headerEnd == std::string::npos)
+			return;
 
-    // ----------------------------
-    // Read errors or disconnect
-    // ----------------------------
-    if (bytes < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            return; // just no data now
-        Logger::log(ERROR, "read error on fd=" + std::to_string(clientFd) +
-                           ": " + std::string(strerror(errno)));
-        cleanupClient(clientFd);
-        return;
-    }
+		// Extract headers block
+		std::string headersPart = buf.substr(0, headerEnd + delimiterLen);
 
-    if (bytes == 0) {
-        Logger::log(INFO, "client disconnected: fd=" + std::to_string(clientFd));
-        cleanupClient(clientFd);
-        return;
-    }
+		// -------------------------------------
+		// 2) Parse Content-Length (if present)
+		// -------------------------------------
+		size_t contentLength = 0;
+		{
+			const std::string key = "Content-Length:";
+			size_t pos = headersPart.find(key);
+			if (pos != std::string::npos) {
+				pos += key.length();
+				// skip spaces
+				while (pos < headersPart.size() &&
+					   (headersPart[pos] == ' ' || headersPart[pos] == '\t'))
+					pos++;
+				size_t end = headersPart.find("\r\n", pos);
+				if (end == std::string::npos)
+					end = headersPart.find("\n", pos);
+				if (end == std::string::npos)
+					return; // malformed header line
+				std::string val = headersPart.substr(pos, end - pos);
+				contentLength = static_cast<size_t>(std::atoi(val.c_str()));
+			}
+		}
 
-    // Append newly read data
-    std::string &buf = _clientBuffers[clientFd];
-    buf.append(buffer, bytes);
+		// -------------------------------------
+		// 3) Compute full request size needed
+		// -------------------------------------
+		size_t totalNeeded = headerEnd + delimiterLen + contentLength;
 
-    // Try to parse as many full HTTP requests as possible (pipelining)
-    while (true) {
-        // -------------------------------------
-        // 1) Find end of headers: "\r\n\r\n"
-        // -------------------------------------
-        size_t headerEnd = buf.find("\r\n\r\n");
-        if (headerEnd == std::string::npos) {
-            // headers not yet fully received
-            return;
-        }
+		// Not all data arrived yet
+		// Logger::log(DEBUG, "Size of request: " + std::to_string(totalNeeded));
+		if (buf.size() < totalNeeded)
+			return;
 
-        // Extract headers block
-        std::string headersPart = buf.substr(0, headerEnd + 4);
+		// -------------------------------------
+		// 4) Extract full raw HTTP request
+		// -------------------------------------
+		std::string rawRequest = buf.substr(0, totalNeeded);
 
-        // -------------------------------------
-        // 2) Parse Content-Length (if present)
-        // -------------------------------------
-        size_t contentLength = 0;
-        {
-            const std::string key = "Content-Length:";
-            size_t pos = headersPart.find(key);
-            if (pos != std::string::npos) {
-                pos += key.length();
-                // skip spaces
-                while (pos < headersPart.size() &&
-                       (headersPart[pos] == ' ' || headersPart[pos] == '\t'))
-                    pos++;
-                size_t end = headersPart.find("\r\n", pos);
-                std::string val = headersPart.substr(pos, end - pos);
-                contentLength = static_cast<size_t>(std::atoi(val.c_str()));
-            }
-        }
+		Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
 
-        // -------------------------------------
-        // 3) Compute full request size needed
-        // -------------------------------------
-        size_t totalNeeded = headerEnd + 4 + contentLength;
+		// -------------------------------------
+		// 5) Handle this request
+		// -------------------------------------
+		try {
+			int listenFd = _clientToListenFd[clientFd];
+			int listenPort = _portSocketMap[listenFd];
 
-        // Not all data arrived yet
-        if (buf.size() < totalNeeded)
-            return;
-
-        // -------------------------------------
-        // 4) Extract full raw HTTP request
-        // -------------------------------------
-        std::string rawRequest = buf.substr(0, totalNeeded);
-
-        Logger::log(DEBUG, "full request received from fd=" + std::to_string(clientFd));
-
-        // -------------------------------------
-        // 5) Handle this request
-        // -------------------------------------
-        try {
-            int listenFd = _clientToListenFd[clientFd];
-            int listenPort = _portSocketMap[listenFd];
-
-            RequestHandler handler(*this, rawRequest, clientFd);
-            handler.handle(listenPort);
-        }
-        catch (const std::exception &e) {
-            Logger::log(ERROR, "request handling error: " + std::string(e.what()));
-            cleanupClient(clientFd);
-            return;
-        }
-
-        // -------------------------------------
-        // 6) Remove processed request from buffer
-        // -------------------------------------
-        buf.erase(0, totalNeeded);
-
-        // Continue loop — maybe pipelined requests follow
-    }
+			RequestHandler handler(*this, rawRequest, clientFd);
+			handler.handle(listenPort);
+			// Logger::log(
+			// 	DEBUG,
+			// 	"readFromClient: KeepAlive=" + std::string(handler.keepAlive() ? "true" : "false") +
+			// 	" processed=" + std::string(handler.processed() ? "true" : "false")
+			// );
+			if (!handler.keepAlive()) {
+				buf.clear();
+				cleanupClient(clientFd); 
+				return;							// never process next buffered request
+			} else if (handler.processed()) {
+				buf.erase(0, totalNeeded);
+												// If no pipelined data left, STOP.
+				if (buf.empty()) {
+					// Logger::log(DEBUG, "Buffer empty, return");
+					return;
+				}
+				// Logger::log(DEBUG, "Process next");
+				continue;						// process next if any
+			}
+		}
+		catch (const std::exception &e) {
+			Logger::log(ERROR, "request handling error: " + std::string(e.what()));
+			cleanupClient(clientFd);
+			return;
+		}
+		// Continue loop — maybe pipelined requests follow
+	}
 }
 
 
@@ -338,7 +337,7 @@ void ServerManager::run() {
 				if (_portSocketMap.count(_fds[i].fd)) {
 					acceptNewClient(_fds[i].fd);
 				} else {
-					readFromClient(_fds[i].fd, i);
+					readFromClient(_fds[i].fd);
 				}
 			}
 		}

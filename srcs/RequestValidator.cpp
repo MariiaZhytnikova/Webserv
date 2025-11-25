@@ -3,6 +3,51 @@
 #include <cstring>
 #include <fstream>
 #include <algorithm>
+#include <sys/stat.h>
+
+std::string resolveFullPath(
+	const HttpRequest& req,
+	const Server& srv,
+	const Location& loc)
+{
+	// Compute root
+	std::string baseRoot = loc.getRoot().empty()
+		? srv.getRoot()
+		: loc.getRoot();
+
+	if (baseRoot.empty())
+		baseRoot = "./www";
+
+	// normalize: remove trailing slash
+	while (!baseRoot.empty() && baseRoot.back() == '/')
+		baseRoot.pop_back();
+
+	// Normalize location path
+	std::string locPath = loc.getPath();
+	if (!locPath.empty() && locPath.front() == '/')
+		locPath.erase(0, 1);
+	if (!locPath.empty() && locPath.back() == '/')
+		locPath.pop_back();
+
+	// Convert request path → local path
+	std::string localPath = req.getPath();
+	if (!localPath.empty() && localPath.front() == '/')
+		localPath.erase(0, 1);
+
+	// Remove location prefix
+	if (!locPath.empty() && localPath.rfind(locPath, 0) == 0) {
+		localPath.erase(0, locPath.length());
+		if (!localPath.empty() && localPath.front() == '/')
+			localPath.erase(0, 1);
+	}
+
+	// Build full filesystem path 
+	std::string full = baseRoot;
+	if (!localPath.empty())
+		full += "/" + localPath;
+
+	return full;
+}
 
 bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) {
 	HttpRequest req = handl.getRequest();
@@ -12,12 +57,20 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 		return handleRedirect(handl, srv, loc);
 
 	// 🔹 Headers check
-	if (!checkHeaders(handl, srv))
+	if (!checkHeaders(handl, srv)) {
 		return false;
+	}
 
 	// 🔹 URI check
 	if (!checkUri(handl, srv))
 		return false;
+
+	// 🔹 Transfer-Encoding: chunked — reject
+	if (handl.getRequest().isHeaderValue("transfer-encoding", "chunked")) {
+		Logger::log(ERROR, "400 bad request: chunked request body not supported");
+		handl.sendResponse(handl.makeErrorResponse(srv, 400));
+		return false;
+	}
 
 	// 🔹 Body size check
 	if (handl.getRequest().getBody().size() > srv.getClientMaxBodySize()) {
@@ -41,6 +94,16 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 		return false;
 	}
 
+	// 🔹 File existence
+	if (method == METHOD_GET || method == METHOD_HEAD) {
+		std::string full = resolveFullPath(req, srv, loc);
+		struct stat st;
+		if (stat(full.c_str(), &st) != 0) {
+			handl.sendResponse(handl.makeErrorResponse(srv, 404));
+			return false;
+		}
+	}
+
 	// 🔹 Allowed methods
 	if (!isMethodAllowed(handl, loc.getMethods())) {
 		HttpResponse res = handl.makeErrorResponse(srv, 405);
@@ -59,13 +122,6 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 		if (!checkPost(handl, srv))
 			return false;
 	}
-
-	// 🔹 Transfer-Encoding: chunked — reject
-	if (handl.getRequest().isHeaderValue("transfer-encoding", "chunked")) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 501));
-		Logger::log(ERROR, std::string("501 method not implemented: Transfer-Encoding: chunked"));
-		return false;
-	}
 	return true;
 }
 
@@ -76,16 +132,15 @@ bool RequestValidator::checkHeaders(RequestHandler& handl, Server& srv) {
 	// 🔹 Malformed header
 	std::string str = handl.getRequest().getHeader("malformed");
 	if (!str.empty()) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 400));
+		handl.sendResponse(handl.makeErrorResponse(srv, 400, true));
 		Logger::log(ERROR, std::string("400 bad request: malformed header"));
 		return false;
 	}
 
 	// 🔹 Duplicate Host header
-	
 	auto range_host = headers.equal_range("host");
 	if (std::distance(range_host.first, range_host.second) != 1) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 400));
+		handl.sendResponse(handl.makeErrorResponse(srv, 400, true));
 		Logger::log(ERROR, std::string("400 bad request: invalid Host header count"));
 		return false;
 	}
@@ -93,7 +148,7 @@ bool RequestValidator::checkHeaders(RequestHandler& handl, Server& srv) {
 	// 🔹 Duplicate Content-Type header
 	auto range_cont = headers.equal_range("content-type");
 	if (std::distance(range_cont.first, range_cont.second) > 1) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 400));
+		handl.sendResponse(handl.makeErrorResponse(srv, 400, true));
 		Logger::log(ERROR, std::string("400 bad request: invalid Content-type header count"));
 		return false;
 	}
@@ -125,7 +180,7 @@ bool RequestValidator::checkUri(RequestHandler& handl, const Server& srv){
 					(c >= 'a' && c <= 'f');
 			};
 			if (!isHex(c1) || !isHex(c2)){
-				handl.sendResponse(handl.makeErrorResponse(srv, 400));
+				handl.sendResponse(handl.makeErrorResponse(srv, 400, true));
 				Logger::log(ERROR, std::string("400 URI encoding error: ") + uri);
 				return false;
 			}
@@ -142,76 +197,103 @@ bool RequestValidator::checkUri(RequestHandler& handl, const Server& srv){
 	return true;
 }
 
-bool RequestValidator::handleRedirect(RequestHandler& handl, Server& srv, Location& loc) {
-	// Load the custom HTML page
-	std::string path = srv.getRoot() + "/errors/301.html";
-	std::ifstream file(path.c_str());
-	std::string buffer;
-
-	if (file) {
-		std::ostringstream ss;
-		ss << file.rdbuf();
-		buffer = ss.str();
-
-		// Replace placeholder
-		std::string target = loc.getReturnTarget();
-		size_t pos = buffer.find("{{REDIRECT_URL}}");
-		while (pos != std::string::npos) {
-			buffer.replace(pos, std::string("{{REDIRECT_URL}}").length(), target);
-			pos = buffer.find("{{REDIRECT_URL}}", pos + target.length());
-		}
-
-		Logger::log(INFO, "Serving custom 301 page");
-	}
-
-	// If no custom content -> fallback real redirect
-	if (buffer.empty()) {
-		HttpResponse res(loc.getReturnCode());       // The real code 301
-		res.setHeader("Location", loc.getReturnTarget());
-		handl.sendResponse(res);
-		Logger::log(ERROR, std::string("fallback redirect to ") + loc.getReturnTarget());
-		return false;
-	}
-
-	// Serve custom HTML with 200 OK
-	HttpResponse res(200, buffer);
-	res.setHeader("Content-Type", "text/html");
-	res.setHeader("Content-Length", std::to_string(buffer.size()));
-
-	handl.sendResponse(res);
-
-	Logger::log(INFO, "Displayed transitional redirect page (meta refresh)");
-	return false;
-}
-
-
 bool RequestValidator::isMethodAllowed(RequestHandler& handl, const std::vector<std::string>& allowed) {
 	if (allowed.empty()) return true; // allow all if not specified
 	return std::find(allowed.begin(), allowed.end(), handl.getRequest().getMethod()) != allowed.end();
 }
 
 bool RequestValidator::checkPost(RequestHandler& handl, Server& srv) {
-	// 🔹 Content-Length method for POST
 	std::string length = handl.getRequest().getHeader("content-length");
-	std::string type = handl.getRequest().getHeader("content-type");
+	std::string type   = handl.getRequest().getHeader("content-type");
+
+	// Content-Length must exist
 	if (length.empty()) {
 		handl.sendResponse(handl.makeErrorResponse(srv, 411));
 		Logger::log(ERROR, "411 content-length is required");
 		return false;
 	}
-	if (type.empty()) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 400));
-		Logger::log(ERROR, "400 Content-type header missing");
-		return false;
-	}
+
+	// Parse Content-Length
 	size_t bodySize = 0;
-	(void)bodySize;
 	try {
 		bodySize = std::stoul(length);
-	} catch (const std::exception&) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 400));
+	}
+	catch (...) {
+		handl.sendResponse(handl.makeErrorResponse(srv, 400, true));
 		Logger::log(ERROR, "400 Content-Length is not a valid number");
 		return false;
 	}
+
+	// Require Content-Type only if body is non-empty
+	if (bodySize > 0 && type.empty()) {
+		handl.sendResponse(handl.makeErrorResponse(srv, 400, true));
+		Logger::log(ERROR, "400 Content-Type required for non-empty POST body");
+		return false;
+	}
+
 	return true;
+}
+
+bool RequestValidator::handleRedirect(
+	RequestHandler& handl,
+	Server& srv,
+	Location& loc)
+{
+	int code = loc.getReturnCode();
+	std::string target = loc.getReturnTarget();
+	std::string ua = handl.getRequest().getHeader("user-agent");
+
+	bool isBrowser =
+		(!ua.empty() &&
+		 (ua.find("Mozilla") != std::string::npos ||
+		  ua.find("Chrome")  != std::string::npos ||
+		  ua.find("Safari")  != std::string::npos ||
+		  ua.find("Firefox") != std::string::npos ||
+		  ua.find("Edge")    != std::string::npos));
+
+	// Fancy Browser redirection
+	if (isBrowser)
+	{
+		std::string path = srv.getRoot() + "/errors/301.html";
+		std::ifstream file(path.c_str());
+		std::string buffer;
+
+		if (file) {
+			std::ostringstream ss;
+			ss << file.rdbuf();
+			buffer = ss.str();
+
+			// Replace placeholder
+			std::string target = loc.getReturnTarget();
+			size_t pos = buffer.find("{{REDIRECT_URL}}");
+			while (pos != std::string::npos) {
+				buffer.replace(pos, std::string("{{REDIRECT_URL}}").length(), target);
+				pos = buffer.find("{{REDIRECT_URL}}", pos + target.length());
+			}
+
+
+			if (!buffer.empty())
+			{
+				HttpResponse res(200, buffer);
+				res.setHeader("Content-Type", "text/html");
+				res.setHeader("Content-Length", std::to_string(buffer.size()));
+				handl.sendResponse(res);
+
+				Logger::log(INFO, "Browser → served custom 301 HTML");
+				return false;
+			}
+		}
+	}
+
+	// Real plain 301
+	HttpResponse res(code);
+	res.setHeader("Location", target);
+	res.setHeader("Content-Length","0");
+	res.setHeader("Connection", "close");
+	handl.setKeepAlive(false);
+
+	handl.sendResponse(res);
+
+	Logger::log(INFO, "Non-browser → safe real redirect " + target);
+	return false;
 }

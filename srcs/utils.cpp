@@ -5,6 +5,15 @@ bool isDirective(const std::string& line) {
 	return !line.empty() && line.back() == ';';
 }
 
+std::string trim(const std::string &s) {
+	size_t start = s.find_first_not_of(" \t");
+	if (start == std::string::npos)
+		return ""; // string is all spaces
+
+	size_t end = s.find_last_not_of(" \t");
+	return s.substr(start, end - start + 1);
+}
+
 std::string trimLine(const std::string& raw) {
 	std::string line = raw;
 
