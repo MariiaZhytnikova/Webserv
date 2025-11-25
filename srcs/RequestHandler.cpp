@@ -11,6 +11,7 @@
 #include <fstream>
 #include "utils.hpp"
 #include <cstring>
+#include <fcntl.h>
 
 RequestHandler::RequestHandler(ServerManager& manager, 
 						const std::string& rawRequest, int clientFd)
@@ -22,6 +23,9 @@ RequestHandler::RequestHandler(ServerManager& manager,
 void RequestHandler::handle(int listenPort) {
 	Server& srv = matchServer(_request, listenPort);
 	Logger::log(INFO, "host: " + _request.getHeader("host"));
+	_processed = false;
+	_keepAlive = true;
+
 	try {
 		std::string sessionId = _request.returnHeaderValue("cookie", "session_id");
 
@@ -42,7 +46,6 @@ void RequestHandler::handle(int listenPort) {
 		// 🔹 Check request
 		if (RequestValidator::check(*this, srv,loc) == false)
 			return;
-		// 🔹 Detect CGI <- Janeeeeeeee!!!!!
 		std::string path = _request.getPath();
 		std::string ext = getFileExtension(path);
 
@@ -61,6 +64,8 @@ void RequestHandler::handle(int listenPort) {
 			case METHOD_GET:	handleGet(srv, loc); break;
 			case METHOD_POST:	handlePost(srv, loc); break;
 			case METHOD_DELETE:	handleDelete(srv, loc); break;
+			case METHOD_PUT:	handlePut(srv, loc); break;
+			case METHOD_HEAD:	handleHead(srv, loc); break;
 			default:			sendResponse(makeErrorResponse(srv, 400)); break;
 		}
 	}
@@ -99,6 +104,10 @@ Server& RequestHandler::matchServer(const HttpRequest& req, int listenPort) {
 
 HttpMethod RequestHandler::getMethod() const { return stringToMethod(_request.getMethod()); }
 const HttpRequest& RequestHandler::getRequest() const { return _request; }
+bool RequestHandler::keepAlive() const { return _keepAlive; }
+void RequestHandler::setKeepAlive(bool val) { _keepAlive = val; }
+void RequestHandler::markProcessed() { _processed = true; }
+bool RequestHandler::processed() const { return _processed; }
 
 bool sendAll(int clientFd, const std::string &data) {
 	size_t totalSent = 0;
@@ -133,17 +142,22 @@ void RequestHandler::sendResponse(const HttpResponse& other) {
 	std::string serialized = res.serialize();
 	// Logger::log(DEBUG, std::string("response size: ") + std::to_string(serialized.size()));
 
-	bool success = sendAll(_clientFd, serialized);
-	if (!success)
-		_keepAlive = false;
+	// Logger::log(DEBUG, std::string("Response ") + serialized);
 
-	if (!_keepAlive) {
-		close(_clientFd);
-		_serverManager.cleanupClient(_clientFd);
+	bool success = sendAll(_clientFd, serialized);
+	if (!success) {
+		res.setHeader("Connection", "close");
+		_keepAlive = false;
 	}
+	_processed = true;
+	// Logger::log(
+	// 	DEBUG,
+	// 	"sendResponse: KeepAlive=" + std::string(_keepAlive ? "true" : "false") +
+	// 	" processed=" + std::string(_processed ? "true" : "false")
+	// );
 }
 
-HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
+HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code, bool fatal) {
 	std::string filePath;
 	// 🔹 Check if server has custom error page
 	auto it = srv.getErrorPages().find(code);
@@ -166,7 +180,7 @@ HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
 			(content.find("<html") != std::string::npos ||
 			content.find("<body") != std::string::npos)) {
 			buffer.str(content);
-			Logger::log(INFO, "Custom HTML error page used: " + filePath);
+			Logger::log(INFO, "Default HTML error page used: " + filePath);
 		} else {
 			Logger::log(WARNING, "Invalid error page content, using fallback");
 		}
@@ -183,6 +197,17 @@ HttpResponse RequestHandler::makeErrorResponse(const Server& srv, int code) {
 	HttpResponse res(code, body);
 	res.setHeader("Content-Type", "text/html");
 	res.setHeader("Content-Length", std::to_string(body.size()));
+	if (fatal || code == 505) {
+		res.setHeader("Connection", "close");
+		_keepAlive = false;
+	} else {
+		res.setHeader("Connection", "keep-alive");
+	}
+	// Logger::log(
+	// 	DEBUG,
+	// 	"makeErrorResponse: KeepAlive=" + std::string(_keepAlive ? "true" : "false") +
+	// 	" processed=" + std::string(_processed ? "true" : "false")
+	// );
 	return res;
 }
 
@@ -244,6 +269,7 @@ void RequestHandler::handleGet(Server& srv, Location& loc) {
 	// If static handler didn't produce a response, fall back to an error for now.
 	sendResponse(makeErrorResponse(srv, 404));
 }
+
 void RequestHandler::handlePost(Server& srv, Location& loc) {
 	if (auto res = servePostStatic(_request, srv, loc, *this)) {
 		sendResponse(*res);
@@ -259,22 +285,69 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 		return;
 	}
 
-	// если DELETE не обработан — возвращаем ошибку
 	sendResponse(makeErrorResponse(srv, 404));
 }
 
+void RequestHandler::handlePut(const Server& srv, const Location& loc)
+{
+	(void)srv;
+	(void)loc;
+	std::string relPath = _request.getPath().substr(loc.getPath().length());
+	if (!relPath.empty() && relPath[0] == '/')
+		relPath.erase(0, 1);
 
-// CGI / File Handling (if implemented)
+	std::string filePath = loc.getRoot() + "/" + relPath;
 
-// CGI script fails → 502 Bad Gateway
+	bool existed = (access(filePath.c_str(), F_OK) == 0);
 
-// File not writable → 500 Internal Server Error
+	int fd = open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd < 0) {
+		HttpResponse res(403, "Forbidden\n");
+		sendResponse(res);
+		return;
+	}
 
-// File already exists on POST (if overwrite not allowed) → 409 Conflict
+	const std::string& body = _request.getBody();
+	write(fd, body.c_str(), body.size());
+	close(fd);
 
-// ADD botton for location /too_large
+	HttpResponse res;
+	if (existed)
+		res = HttpResponse(204);    // No Content
+	else
+		res = HttpResponse(201);    // Created
 
-// add to config 
-	// 	location /too_large/ {
-	// 	client_max_body_size 1B;
-	// }
+	sendResponse(res);
+}
+
+void RequestHandler::handleHead(const Server& srv, const Location& loc)
+{
+	// Try serving the file using GET logic
+	if (auto res = serveGetStatic(_request, srv, loc, *this))
+	{
+		// Correct Content-Length based on actual body
+		size_t len = res->getBody().size();
+		res->setHeader("Content-Length", std::to_string(len));
+
+		// Remove body for HEAD
+		res->setBody("");
+
+		// MUST disable keep-alive BEFORE sendResponse()
+		_keepAlive = false;
+		res->setHeader("Connection", "close");
+
+		sendResponse(*res);
+		return;
+	}
+
+	// Error version
+	HttpResponse err = makeErrorResponse(srv, 404);
+	size_t len = err.getBody().size();
+	err.setHeader("Content-Length", std::to_string(len));
+	err.setBody("");
+
+	_keepAlive = false;
+	err.setHeader("Connection", "close");
+
+	sendResponse(err);
+}

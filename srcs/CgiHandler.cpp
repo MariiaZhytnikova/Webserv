@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "utils.hpp"
+#include "Logger.hpp"
 
 CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
@@ -49,7 +50,23 @@ std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scrip
 	fullPath = fullPath.substr(0, qpos);
 	}
 
-	// Standard CGI vars
+	// Derive SCRIPT_NAME from the request path
+	std::string scriptName = scriptPath.substr(scriptPath.find_last_of('/') + 1);
+
+	// SCRIPT_NAME: the executed CGI file
+	env["SCRIPT_NAME"] = "/" + scriptName;
+
+	// PATH_INFO = extra path after script name
+	std::string pathInfo;
+	size_t scriptPos = fullPath.find(scriptName);
+	if (scriptPos != std::string::npos) {
+		pathInfo = fullPath.substr(scriptPos + scriptName.size());
+	}
+	env["PATH_INFO"] = pathInfo;
+
+	// Logger::log(DEBUG, "Enviroment in CGI: PATH_INFO: " + pathInfo + " SCRIPT_NAME: /" + scriptName);
+
+	// Standard CGI varszz
 	env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env["SCRIPT_FILENAME"] = scriptPath;
 	env["REQUEST_METHOD"] = _request.getMethod();

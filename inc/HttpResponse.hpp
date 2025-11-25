@@ -38,6 +38,12 @@ public:
 	~HttpResponse() = default;
 
 	void setHeader(const std::string& key, const std::string& value);
+	void setBody(const std::string& body);
+
 	static std::string statusMessageForCode(int code);
 	std::string serialize() const;
+
+	const std::string& getBody() const;
+	int getStatusCode() const;
+	const std::map<std::string, std::string>& getHeaders() const;
 };

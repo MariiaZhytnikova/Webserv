@@ -1,4 +1,6 @@
 #include "Server.hpp"
+#include <regex>
+#include "Logger.hpp"
 
 Server::Server()
 	: _host("127.0.0.1"),
@@ -67,6 +69,26 @@ Location Server::findLocation(const std::string& path) const {
 	{
 		if (it->getPath() == path)
 			return *it; // exact match wins
+	}
+
+	// Regex match
+	for (const Location& loc : _locations) {
+		const std::string& p = loc.getPath();
+		if (!p.empty() && p[0] == '~') {
+			std::string pattern = p.substr(1);
+			// remove extra spaces like "~ \.bla$"
+			while (!pattern.empty() && pattern[0] == ' ')
+				pattern.erase(0, 1);
+			try {
+				std::regex rgx(pattern);
+				if (std::regex_search(path, rgx)) {
+					Logger::log(INFO, "Regex match: " + path);
+					return loc;
+				}
+			} catch (...) {
+				continue; // ignore invalid regex
+			}
+		}
 	}
 
 	// Longest prefix match

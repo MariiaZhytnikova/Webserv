@@ -9,6 +9,7 @@
 #include <dirent.h>
 
 bool isDirective(const std::string& line);
+std::string trim(const std::string &s);
 std::string trimLine(const std::string& raw);
 std::string parseValue(const std::string& line);
 std::vector<std::string> parseMethods(const std::string& line);

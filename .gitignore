@@ -31,6 +31,7 @@ uploads/
 *.so
 *.so.*
 *.dylib
+.count
 
 # Executables
 *.exe
