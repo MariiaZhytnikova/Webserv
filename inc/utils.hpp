@@ -21,3 +21,4 @@ std::pair<int, std::string> parseReturn(const std::string& line);
 
 std::string getFileExtension(const std::string& path);
 std::string urlDecode(const std::string &src);
+std::string sanitizeFilename(const std::string &n);

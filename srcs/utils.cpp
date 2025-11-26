@@ -217,3 +217,12 @@ std::string urlDecode(const std::string &src) {
 
 	return ret;
 }
+
+std::string sanitizeFilename(const std::string &n) {
+	std::string out;
+	for (char c : n)
+		// Remove control chars, slashes, backslashes
+		if (c > 31 && c != '/' && c != '\\')
+			out.push_back(c);
+	return out.empty() ? "upload.bin" : out;
+};
