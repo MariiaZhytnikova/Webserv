@@ -36,249 +36,137 @@ static std::string detectMime(const std::string& path) {
 	return "application/octet-stream";
 }
 
-// std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server& srv, const Location& loc, RequestHandler& handler) {
-// 	Server serv = srv;
-// 	std::string reqPath = req.getPath();
-// 	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
-// 	if (baseRoot.empty()) baseRoot = "./www";
-// 	//if (!baseRoot.empty() && baseRoot.back() == '/') baseRoot.pop_back();
-// 	//while (!baseRoot.empty() && baseRoot.back() == '/') baseRoot.pop_back();
-
-// 	std::string fullPath = baseRoot;
-// 	if (reqPath.empty() || reqPath == "/") {
-// 		std::string indexName = loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
-// 		if (indexName.empty()) indexName = "index.html";
-// 		fullPath += "/" + indexName;
-// 	} else {
-// 		std::string rp = reqPath;
-// 		if (rp.front() == '/') rp.erase(0,1);
-// 		fullPath += "/" + rp;
-// 		// if (!fullPath.empty() && fullPath.back() == '/') {
-// 		// 	std::string indexName = loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
-// 		// 	if (indexName.empty()) indexName = "index.html";
-// 		// 	fullPath += indexName;
-// 		// }
-// 	}
+std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server& srv, const Location& loc, RequestHandler& handler) {
 	
-// 	struct stat st;
+	////////////////////////////////////////////////////////////
+	//DEBUG
+	// std::cout<<"===HEADERS===\n";
+	// for (const auto& [key, value] : req.getHeaders()){
+	// 	std::cout << key << ": "<< value << "\n";
+	// }
+	// std::cout<<"===END of HEADERS===\n";
+	///////////////////////////////////////////////////////////
+	std::string reqPath = req.getPath(); // /css/style.css
 	
-// 	if (stat(fullPath.c_str(), &st) != 0) {
-// 		Logger::log(ERROR, std::string("404 Not Found 1") + req.getPath());
-// 		HttpResponse response = handler.makeErrorResponse(serv, 404);
-// 		return handler.makeErrorResponse(serv, 404);
-// 	}
-// 	if (S_ISDIR(st.st_mode)) {
-// 		    // 1️⃣ ALWAYS normalize directory fullPath
-//     if (!fullPath.empty() && fullPath.back() != '/')
-//         fullPath += '/';
+	// Select root
+	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
+	while (!baseRoot.empty() && baseRoot.back() == '/')
+		baseRoot.pop_back();
 
-//     // 2️⃣ Plain text for /uploads/
-//     if (loc.getPath() == "/uploads/" || loc.getPath() == "/uploads") {
+	if (baseRoot.empty())
+		 baseRoot = "./www";
+	// std::cout<<"6!!!!!!!!!!!!!!!"<<srv.getRoot()<<", "<<loc.getRoot()<<", "<<baseRoot<<"\n";
+	// std::cout<<"7!!!!!!!!!!!!!!!"<<reqPath<<"\n";
+	std::string fullPath = baseRoot;
+	// If root URL ("/")
+	if (reqPath.empty() || reqPath == "/") {
+		std::string indexName = loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
+		if (indexName.empty()) indexName = "index.html";
+		fullPath += "/" + indexName;
+	} else {
+		// Normalize path: remove all leading slashes
+		std::string rp = reqPath;
+		std::cout<<"8!!!!!!!!!!!!!!!"<<reqPath<<"\n";
+		while (!rp.empty() && rp.front() == '/')
+			rp.erase(0,1);
+		std::cout<<"9!!!!!!!!!!!!!!!"<<rp<<"\n";
+		fullPath += "/" + rp;
+	}
+	
+	struct stat st;
+	
+	if (stat(fullPath.c_str(), &st) != 0) {
+		Logger::log(ERROR, std::string("404 Not Found 1") + req.getPath());
+		HttpResponse response = handler.makeErrorResponse(srv, 404);
+		return handler.makeErrorResponse(srv, 404);
+	}
+	std::cout<<"??????????"<<fullPath.c_str()<<"\n";
+	//Redirect directories without trailing slash ( to test it delete browser cache first!!!!)
+	if (S_ISDIR(st.st_mode) && req.getPath().back() != '/') {
+		HttpResponse redirect(301, "");
+		redirect.setHeader("Location", req.getPath() + "/");
+		Logger::log(INFO, "Redirecting (missing slash): " + reqPath + " -> " + reqPath + "/");
+		return redirect;
+	}
 
-//         DIR* dir = opendir(fullPath.c_str());
-//         if (!dir) {
-//             return handler.makeErrorResponse(serv, 403);
-//         }
+	if (S_ISDIR(st.st_mode)) {
+			// ALWAYS normalize directory fullPath
+	if (!fullPath.empty() && fullPath.back() != '/')
+		fullPath += '/';
 
-//         std::ostringstream out;
-//         struct dirent* ent;
-//         while ((ent = readdir(dir)) != NULL) {
-//             if (ent->d_name[0] == '.') continue;
-//             out << ent->d_name << "\n";
-//         }
-//         closedir(dir);
+	// Plain text for /uploads/
+	if (loc.getPath() == "/uploads/" || loc.getPath() == "/uploads") {
 
-//         std::string listing = out.str();
-//         HttpResponse res(200, listing);
-//         res.setHeader("Content-Type", "text/plain");
-//         res.setHeader("Content-Length", std::to_string(listing.size()));
-//         return res;
-//     }
+		if (!loc.getAutoindex() && !srv.getAutoindex()) {
+			return handler.makeErrorResponse(srv, 403);
+		}
+		DIR* dir = opendir(fullPath.c_str());
+		if (!dir) {
+			return handler.makeErrorResponse(srv, 403);
+		}
 
-//     // 3️⃣ DEFAULT: HTML autoindex (как было у тебя)
-// 		// ⭐ Fallback: default HTML autoindex (your existing code)
-// 		std::string indexName = loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
-// 		if (indexName.empty()) indexName = "index.html";
-// 		std::string indexPath = fullPath;
-// 		if (indexPath.back() != '/') indexPath += "/";
-// 		indexPath += indexName;
-// 		if (stat(indexPath.c_str(), &st) == 0 && !S_ISDIR(st.st_mode)) {
-// 			fullPath = indexPath;
-// 		} else if (loc.getAutoindex() || srv.getAutoindex()) {
-// 			DIR* dir = opendir(fullPath.c_str());
-// 			if (!dir) {
-// 				Logger::log(ERROR, std::string("forbidden path: ") + req.getPath());
-// 				return handler.makeErrorResponse(serv, 403);
-// 			}
-// 			std::ostringstream html;
-// 			html << "<html><head><meta charset=\"utf-8\"><title>Index of " << req.getPath() << "</title></head><body>";
-// 			html << "<h1>Index of " << req.getPath() << "</h1><ul>";
-// 			struct dirent* ent;
-// 			while ((ent = readdir(dir)) != NULL) {
-// 				std::string name = ent->d_name;
-// 				if (name == ".") continue;
-// 				std::string href = req.getPath();
-// 				if (href.back() != '/') href += "/";
-// 				href += name;
-// 				html << "<li><a href=\"" << href << "\">" << name << "</a></li>";
-// 			}
-// 			closedir(dir);
-// 			html << "</ul></body></html>";
-// 			std::string body = html.str();
-// 			HttpResponse res(200, body);
-// 			res.setHeader("Content-Type", "text/html");
-// 			res.setHeader("Content-Length", std::to_string(body.size()));
-// 			return res;
-// 		} else {
+		std::ostringstream out;
+		struct dirent* ent;
+		while ((ent = readdir(dir)) != NULL) {
+			if (ent->d_name[0] == '.') continue;
+			out << ent->d_name << "\n";
+		}
+		closedir(dir);
+
+		std::string listing = out.str();
+		HttpResponse res(200, listing);
+		res.setHeader("Content-Type", "text/plain");
+		res.setHeader("Content-Length", std::to_string(listing.size()));
+		return res;
+	}
+		// Fallback: default HTML autoindex (your existing code)
+		std::string indexName = loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
+		if (indexName.empty()) indexName = "index.html";
+		std::string indexPath = fullPath;
+		if (indexPath.back() != '/') indexPath += "/";
+		indexPath += indexName;
+		if (stat(indexPath.c_str(), &st) == 0 && !S_ISDIR(st.st_mode)) {
+			fullPath = indexPath;
+		} else if (loc.getAutoindex() || srv.getAutoindex()) {
+			DIR* dir = opendir(fullPath.c_str());
+			if (!dir) {
+				Logger::log(ERROR, std::string("forbidden path: ") + req.getPath());
+				return handler.makeErrorResponse(srv, 403);
+			}
+			std::ostringstream html;
+			html << "<html><head><meta charset=\"utf-8\"><title>Index of " << req.getPath() << "</title></head><body>";
+			html << "<h1>Index of " << req.getPath() << "</h1><ul>";
+			struct dirent* ent;
+			while ((ent = readdir(dir)) != NULL) {
+				std::string name = ent->d_name;
+				if (name == ".") continue;
+				std::string href = req.getPath();
+				if (href.back() != '/') href += "/";
+				href += name;
+				html << "<li><a href=\"" << href << "\">" << name << "</a></li>";
+			}
+			closedir(dir);
+			html << "</ul></body></html>";
+			std::string body = html.str();
+			HttpResponse res(200, body);
+			res.setHeader("Content-Type", "text/html");
+			res.setHeader("Content-Length", std::to_string(body.size()));
+			return res;
+		} else {
 			
-// 			Logger::log(ERROR, std::string("404 Not Found 2") + fullPath);
-// 			return handler.makeErrorResponse(serv, 404);
-// 		}
-// 	}
+			Logger::log(ERROR, std::string("404 Not Found 2") + fullPath);
+			return handler.makeErrorResponse(srv, 404);
+		}
+	}
 
-// 	std::string body;
-// 	if (!readFile(fullPath, body)) {
-// 		Logger::log(ERROR, std::string("403 Forbidden") + fullPath);
-// 		return handler.makeErrorResponse(serv, 403);
-// 	}
+	std::string body;
+	if (!readFile(fullPath, body)) {
+		Logger::log(ERROR, std::string("403 Forbidden") + fullPath);
+		return handler.makeErrorResponse(srv, 403);
+	}
 
-// 	HttpResponse res(200, body);
-// 	res.setHeader("Content-Type", detectMime(fullPath));
-// 	res.setHeader("Content-Length", std::to_string(body.size()));
-// 	return res;
-// }
-
-std::optional<HttpResponse> serveGetStatic(
-    const HttpRequest& req,
-    const Server& srv,
-    const Location& loc,
-    RequestHandler& handler)
-{
-    Logger::log(DEBUG, "GET START path=" + req.getPath());
-
-    Server serv = srv;
-    std::string reqPath = req.getPath();
-
-    // 1️⃣ Resolve root
-    std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
-    if (baseRoot.empty())
-        baseRoot = "./www";
-
-    // normalize root (remove ending /)
-    while (!baseRoot.empty() && baseRoot.back() == '/')
-        baseRoot.pop_back();
-
-    // 2️⃣ Build full path
-    std::string fullPath = baseRoot;
-
-    if (reqPath == "/" || reqPath.empty()) {
-        std::string indexName =
-            loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
-        if (indexName.empty()) indexName = "index.html";
-        fullPath += "/" + indexName;
-    } else {
-        std::string rp = reqPath;
-        if (rp.front() == '/')
-            rp.erase(0, 1);
-        fullPath += "/" + rp;
-    }
-
-    // 3️⃣ Stat file/dir
-    struct stat st;
-    if (stat(fullPath.c_str(), &st) != 0) {
-        Logger::log(ERROR, std::string("404 Not Found ") + fullPath);
-        return handler.makeErrorResponse(serv, 404);
-    }
-
-    // 4️⃣ Directory
-    if (S_ISDIR(st.st_mode)) {
-
-        // Ensure fullPath ends with /
-        if (fullPath.back() != '/')
-            fullPath += '/';
-
-        // Plain-text listing only for /uploads/
-        if (loc.getPath() == "/uploads/" || loc.getPath() == "/uploads") {
-
-            DIR* dir = opendir(fullPath.c_str());
-            if (!dir)
-                return handler.makeErrorResponse(serv, 403);
-
-            std::ostringstream out;
-            struct dirent* ent;
-            while ((ent = readdir(dir)) != NULL) {
-                if (ent->d_name[0] == '.')
-                    continue;
-                out << ent->d_name << "\n";
-            }
-            closedir(dir);
-
-            std::string listing = out.str();
-
-            HttpResponse res(200, listing);
-            res.setHeader("Content-Type", "text/plain");
-            res.setHeader("Content-Length", std::to_string(listing.size()));
-            return res;
-        }
-
-        // Directory → try index.html
-        std::string indexName =
-            loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
-        if (indexName.empty()) indexName = "index.html";
-
-        std::string indexPath = fullPath + indexName;
-
-        if (stat(indexPath.c_str(), &st) == 0 && !S_ISDIR(st.st_mode)) {
-            fullPath = indexPath;
-        }
-        else if (loc.getAutoindex() || srv.getAutoindex()) {
-            // HTML autoindex
-            DIR* dir = opendir(fullPath.c_str());
-            if (!dir)
-                return handler.makeErrorResponse(serv, 403);
-
-            std::ostringstream html;
-
-            html << "<html><head><meta charset=\"utf-8\"><title>Index of "
-                 << req.getPath() << "</title></head><body>";
-            html << "<h1>Index of " << req.getPath() << "</h1><ul>";
-
-            struct dirent* ent;
-            while ((ent = readdir(dir)) != NULL) {
-                if (std::string(ent->d_name) == ".")
-                    continue;
-
-                html << "<li><a href=\""
-                     << req.getPath()
-                     << (req.getPath().back() == '/' ? "" : "/")
-                     << ent->d_name
-                     << "\">"
-                     << ent->d_name
-                     << "</a></li>";
-            }
-
-            closedir(dir);
-            html << "</ul></body></html>";
-
-            std::string body = html.str();
-            HttpResponse res(200, body);
-            res.setHeader("Content-Type", "text/html");
-            res.setHeader("Content-Length", std::to_string(body.size()));
-            return res;
-        } else {
-            return handler.makeErrorResponse(serv, 404);
-        }
-    }
-
-    // 5️⃣ Regular file
-    std::string body;
-    if (!readFile(fullPath, body)) {
-        Logger::log(ERROR, "403 Forbidden " + fullPath);
-        return handler.makeErrorResponse(serv, 403);
-    }
-
-    HttpResponse res(200, body);
-    res.setHeader("Content-Type", detectMime(fullPath));
-    res.setHeader("Content-Length", std::to_string(body.size()));
-    return res;
+	HttpResponse res(200, body);
+	res.setHeader("Content-Type", detectMime(fullPath));
+	res.setHeader("Content-Length", std::to_string(body.size()));
+	return res;
 }

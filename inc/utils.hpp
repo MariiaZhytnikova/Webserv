@@ -10,6 +10,7 @@
 
 bool isDirective(const std::string& line);
 std::string trim(const std::string &s);
+std::string trim(const std::string &s);
 std::string trimLine(const std::string& raw);
 std::string parseValue(const std::string& line);
 std::vector<std::string> parseMethods(const std::string& line);
@@ -21,3 +22,4 @@ std::pair<int, std::string> parseReturn(const std::string& line);
 
 std::string getFileExtension(const std::string& path);
 std::string urlDecode(const std::string &src);
+std::string sanitizeFilename(const std::string &n);
