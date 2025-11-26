@@ -94,6 +94,16 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 		return false;
 	}
 
+	// 🔹 File existence
+	if (method == METHOD_GET || method == METHOD_HEAD) {
+		std::string full = resolveFullPath(req, srv, loc);
+		struct stat st;
+		if (stat(full.c_str(), &st) != 0) {
+			handl.sendResponse(handl.makeErrorResponse(srv, 404));
+			return false;
+		}
+	}
+
 	// 🔹 Allowed methods
 	if (!isMethodAllowed(handl, loc.getMethods())) {
 		HttpResponse res = handl.makeErrorResponse(srv, 405);
