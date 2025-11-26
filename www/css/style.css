@@ -1,5 +1,5 @@
 :root{
-    --bg: #0b1220;
+	--body-bg: linear-gradient(180deg, #071226 0%, #0b1220 100%);
     --card: #0f1724;
     --muted: #9aa7bf;
     --accent: #ffe066;
@@ -17,15 +17,23 @@ html,body{
 body{
     margin:0;
     font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-    background: var(--bg);
     color: #e6eef8;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     line-height:1.45;
     display: flex;
     flex-direction: column;
-    /* justify-content: center;
-    align-items: center; */   /* на маленьком экране мака ломается и не видно хедера*/
+    justify-content: center;
+    align-items: center;
+}
+
+.page-wrapper {
+    background: var(--body-bg);
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .theme-switch {
@@ -287,44 +295,47 @@ a.inline-link {
 
 #theme-toggle:checked ~ .container,
 #theme-toggle:checked ~ * {
-    --bg: #8f8f8f;
     --card: #f5f3f3;
     --muted: #2b2828;
     --success: #ffef0c;
-    color: #000;
-    background: linear-gradient(180deg, #dad9d9 0%, #eaeaea 100%);
+     color: #000;
 }
-#theme-toggle:checked ~ .container h3 {
+
+#theme-toggle:checked ~ .page-wrapper {
+    --body-bg: linear-gradient(180deg, #dad9d9 0%, #eaeaea 100%);
+}
+
+#theme-toggle:checked ~ .page-wrapper .container h3 {
     color: #333;
 }
 
-#theme-toggle:checked ~ .container .lead {
+#theme-toggle:checked ~ .page-wrapper .container .lead {
     color: #181818;
 }
 
-#theme-toggle:checked ~ .container .feature {
+#theme-toggle:checked ~ .page-wrapper .container .feature {
     background: rgba(255, 255, 255, 0.6);
     border-color: rgba(0, 0, 0, 0.15);
 }
 
-#theme-toggle:checked ~ .container .feature h3 {
+#theme-toggle:checked ~ .page-wrapper .container .feature h3 {
     color: #222;
 }
 
-#theme-toggle:checked ~ .container .feature .muted {
+#theme-toggle:checked ~ .page-wrapper .container .feature .muted {
     color: #555;
 }
 
-#theme-toggle:checked ~ .container .member {
+#theme-toggle:checked ~ .page-wrapper .container .member {
     background: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(0, 0, 0, 0.12);
     color: #222;
 }
 
-#theme-toggle:checked ~ .container .member strong {
+#theme-toggle:checked ~ .page-wrapper .container .member strong {
     color: #111;
 }
 
-#theme-toggle:checked ~ .container .member .muted {
+#theme-toggle:checked ~ .page-wrapper .container .member .muted {
     color: #555;
 }
