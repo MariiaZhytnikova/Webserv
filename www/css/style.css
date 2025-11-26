@@ -1,5 +1,5 @@
 :root{
-    --bg: #0b1220;
+	--body-bg: linear-gradient(180deg, #071226 0%, #0b1220 100%);
     --card: #0f1724;
     --muted: #9aa7bf;
     --accent: #ffe066;
@@ -17,7 +17,6 @@ html,body{
 body{
     margin:0;
     font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-    background: linear-gradient(180deg, #071226 0%, #0b1220 100%);
     color: #e6eef8;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
@@ -26,8 +25,60 @@ body{
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
 
+.page-wrapper {
+    background: var(--body-bg);
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
+.theme-switch {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 32px;
+    background: var(--card);
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    transition: background 0.3s;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* The circle that slides */
+.theme-switch .thumb {
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.theme-switch .thumb::before {
+    content: "🌙";
+}
+
+#theme-toggle:checked + .theme-switch .thumb {
+    transform: translateX(28px);
+}
+
+#theme-toggle:checked + .theme-switch .thumb::before {
+    content: "☀️";
+}
+
+#theme-toggle:checked + .theme-switch {
+    background: var(--muted);
 }
 
 .container {
@@ -36,8 +87,6 @@ body{
     padding:36px;
     display: flex;
     flex-direction: column;
-
-
 }
 
 header {
@@ -62,11 +111,6 @@ header {
     font-weight:700
 }
 
-nav a {
-    color:var(--muted);
-    text-decoration:none;
-    margin-left:18px
-}
 
 .hero {
     display:grid;
@@ -161,6 +205,31 @@ p.lead {
     min-width:160px
 }
 
+.team .member {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s ease;
+}
+
+.team .member .arrow {
+    font-size: 14px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0.7;
+	margin-left: 6px;
+	color: var(--accent);
+}
+
+.team .member:hover .arrow {
+    transform: translateX(2px);
+    opacity: 1;
+}
+
 pre {
     background:#071226;
     padding:12px;
@@ -223,3 +292,50 @@ a.inline-link {
   }
 
 @media (max-width:880px){.hero{grid-template-columns:1fr}}
+
+#theme-toggle:checked ~ .container,
+#theme-toggle:checked ~ * {
+    --card: #f5f3f3;
+    --muted: #2b2828;
+    --success: #ffef0c;
+     color: #000;
+}
+
+#theme-toggle:checked ~ .page-wrapper {
+    --body-bg: linear-gradient(180deg, #dad9d9 0%, #eaeaea 100%);
+}
+
+#theme-toggle:checked ~ .page-wrapper .container h3 {
+    color: #333;
+}
+
+#theme-toggle:checked ~ .page-wrapper .container .lead {
+    color: #181818;
+}
+
+#theme-toggle:checked ~ .page-wrapper .container .feature {
+    background: rgba(255, 255, 255, 0.6);
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+#theme-toggle:checked ~ .page-wrapper .container .feature h3 {
+    color: #222;
+}
+
+#theme-toggle:checked ~ .page-wrapper .container .feature .muted {
+    color: #555;
+}
+
+#theme-toggle:checked ~ .page-wrapper .container .member {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: #222;
+}
+
+#theme-toggle:checked ~ .page-wrapper .container .member strong {
+    color: #111;
+}
+
+#theme-toggle:checked ~ .page-wrapper .container .member .muted {
+    color: #555;
+}

@@ -7,10 +7,16 @@
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+		<link rel="icon" href="/favicon.ico" type="image/x-icon">
 		<meta name="theme-color" content="#0b1220">
 		<link rel="stylesheet" href="css/style.css">
 	</head>
 	<body>
+		<input type="checkbox" id="theme-toggle" hidden>
+		<label for="theme-toggle" class="theme-switch">
+			<div class="thumb"></div>
+		</label>
+		<div class="page-wrapper">
 		<div class="container">
 			<header>
 				<div class="brand">
@@ -20,12 +26,6 @@
 						<div class="muted" style="font-size:13px">Custom HTTP server — 42 project</div>
 					</div>
 				</div>
-				<nav>
-					<a href="#features">Features</a>
-					<a href="#try">Try</a>
-					<a href="#team">Team</a>
-					<a href="/conf/default.conf" class="inline-link">Config</a>
-				</nav>
 			</header>
 
 			<main class="hero">
@@ -34,7 +34,6 @@
 						<h1>Welcome to Webserv</h1>
 						<p class="lead">A lightweight, C++ HTTP server implementing the mandatory and bonus parts of the 42 webserv project: virtual hosts, CGI, file uploads, custom error pages and more.</p>
 						<div class="row">
-							<a class="btn" href="#try">Try endpoints</a>
 							<a class="btn" href="https://github.com/MariiaZhytnikova/Webserv" target="_blank" rel="noopener">View repo</a>
 						</div>
 
@@ -62,7 +61,8 @@ curl -v -F "file=tmp-test.txt" http://localhost:8080/uploads/
 curl -i -X DELETE http://localhost:8080/resource
 curl -i -F "file=@test.txt" http://localhost:8080/upload
 printf "METHOD / HTTP/1.1\r\n Header1:value \r\n Header2:value \r\n\r\n body" | nc localhost 8080
-printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080</code></pre>
+printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080
+printf "KILL / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\nConnection: close\r\n\r\nhello=123" | nc localhost 8080</code></pre>
 							<div class="muted" style="margin-top:8px">Replace port/path as configured in your `default.conf`</div>
 						</section>
 					</div>
@@ -85,9 +85,17 @@ printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhell
 						<div style="margin-top:16px">
 							<h4 style="margin:0 0 8px 0">Team</h4>
 							<div class="team">
-								<div class="member"><strong>Mariia Z.</strong><div class="muted">mzhitnik</div></div>
-								<div class="member"><strong>Evgeniia K.</strong><div class="muted">ekashirs</div></div>
-								<div class="member"><strong>Marina Z.</strong><div class="muted">mzhivoto</div></div>
+								<a class="member" href="https://github.com/MariiaZhytnikova" target="_blank">
+									<strong>Mariia Z. <span class="arrow">  ↗</span></strong>
+								</a>
+						
+								<a class="member" href="https://github.com/janeyears" target="_blank">
+									<strong>Evgeniia K. <span class="arrow">  ↗</span></strong>
+								</a>
+						
+								<a class="member" href="https://github.com/marinezh" target="_blank">
+									<strong>Marina Z.<span class="arrow">  ↗</span></strong>
+								</a>
 							</div>
 						</div>
 					</div>
@@ -100,6 +108,7 @@ printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhell
 				<a class="inline-link" href="https://github.com/janeyears" target="_blank">Evgeniia</a>,
 				<a class="inline-link" href="https://github.com/marinezh" target="_blank">Marina</a>
 			</footer>
+		</div>
 		</div>
 	</body>
 </html>
