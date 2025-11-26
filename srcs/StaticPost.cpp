@@ -21,22 +21,6 @@ std::optional<HttpResponse> servePostStatic(
 {
 	// ---------- Resolve base root ----------
 	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
-	
-	// if (baseRoot.empty()) baseRoot = "./www";
-	// if (baseRoot.back() == '/') baseRoot.pop_back();
-
-	// ---------- Resolve request path ----------
-	// std::string reqPath = req.getPath();
-	// std::string prefix = loc.getPath();
-	// if (!prefix.empty() && reqPath.find(prefix) == 0)
-	// 	reqPath.erase(0, prefix.size());
-	// if (!reqPath.empty() && reqPath.front() != '/')
-	// 	reqPath.insert(reqPath.begin(), '/');
-	//std::string fullPath = baseRoot + reqPath;
-	
-
-	// 3) Remove prefix ("/uploads/")
-	// ensure baseRoot ends with "/"
 	if (!baseRoot.empty() && baseRoot.back() != '/')
 		baseRoot += '/';
 
@@ -63,29 +47,6 @@ std::optional<HttpResponse> servePostStatic(
 	// Logger::log(DEBUG, "reqPath = " + reqPath);
 	// Logger::log(DEBUG, "baseRoot = " + baseRoot);
 	Logger::log(DEBUG, "fullPath = " + fullPath);
-
-	// ---------- Helpers ----------
-	auto sanitizeFilename = [](const std::string &n) {
-		std::string out;
-		for (char c : n)
-			if (c > 31 && c != '/' && c != '\\')
-				out.push_back(c);
-		return out.empty() ? "upload.bin" : out;
-	};
-
-	auto decodeUrl = [](const std::string &s) {
-		std::string out;
-		out.reserve(s.size());
-		for (size_t i = 0; i < s.size(); ++i) {
-			if (s[i] == '+') out.push_back(' ');
-			else if (s[i] == '%' && i + 2 < s.size()) {
-				char c = std::stoi(s.substr(i+1,2), nullptr, 16);
-				out.push_back(c);
-				i += 2;
-			} else out.push_back(s[i]);
-		}
-		return out;
-	};
 
 	const std::string &body = req.getBody();
 	const std::string contentType = req.getHeader("content-type");
@@ -114,16 +75,6 @@ std::optional<HttpResponse> servePostStatic(
 				return handler.makeErrorResponse(srv, 400);
 
 			std::string headers = body.substr(pos, hdrEnd - pos);
-
-			// parse filename + name
-			// {
-			//     size_t fn = headers.find("filename=\"");
-			//     if (fn != std::string::npos) {
-			//         size_t q1 = headers.find('"', fn + 10);
-			//         size_t q2 = headers.find('"', q1 + 1);
-			//         fileName = headers.substr(q1 + 1, q2 - q1 - 1);
-			//     }
-			// }
 			std::istringstream hl(headers);
 			std::string hline;
 
@@ -190,7 +141,7 @@ std::optional<HttpResponse> servePostStatic(
 				std::string pair = body.substr(pos, amp - pos);
 				size_t eq = pair.find('=');
 				if (eq != std::string::npos)
-					params[decodeUrl(pair.substr(0, eq))] = decodeUrl(pair.substr(eq+1));
+					params[urlDecode(pair.substr(0, eq))] = urlDecode(pair.substr(eq+1));
 				if (amp == std::string::npos) break;
 				pos = amp + 1;
 			}
@@ -250,7 +201,7 @@ std::optional<HttpResponse> servePostStatic(
 	Logger::log(INFO, "POST: saved " + fullPath);
 
 	//🔹 Response
-   return handler.makeSuccessResponse(
+	return handler.makeSuccessResponse(
 	srv,
 	{
 		{"filename", fullPath},

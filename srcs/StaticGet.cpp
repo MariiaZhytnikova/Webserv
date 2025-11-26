@@ -119,8 +119,6 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 		res.setHeader("Content-Length", std::to_string(listing.size()));
 		return res;
 	}
-
-	
 		// Fallback: default HTML autoindex (your existing code)
 		std::string indexName = loc.getIndex().empty() ? srv.getIndex() : loc.getIndex();
 		if (indexName.empty()) indexName = "index.html";
