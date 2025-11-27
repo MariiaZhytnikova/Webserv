@@ -9,7 +9,7 @@ Server::Server()
 	  _root(""),
 	  _index("index.html"),
 	  _isDefault(false),
-	  _autoindex(false),
+	  _autoindex(true),
 	  _hasListen(false),
 	  _hasRoot(false)  { }
 
@@ -45,10 +45,8 @@ void Server::setAutoindex(bool value) { _autoindex = value; }
 void Server::setMethod(const std::vector<std::string>& methods) { _methods = methods; }
 void Server::setListenFlag() { _hasListen = true; }
 void Server::setRootFlag() { _hasRoot = true; }
-
 void Server::addLocation(const Location& loc) { _locations.push_back(loc); }
 void Server::addLocation(Location&& loc) { _locations.push_back(std::move(loc)); }
-
 bool Server::hasListen() const { return _hasListen; }
 bool Server::hasRoot() const { return _hasRoot; }
 

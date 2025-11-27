@@ -24,47 +24,54 @@
 	</body>
 
 <script>
-	 	console.log("DELETE PAGE JS LOADED");
 		async function loadFiles() {
-		const res = await fetch('/uploads/');
-		console.log("res", res);
-		const text = await res.text();
-		console.log("text", text);
-		// text contains the directory listing you return
-		// Example:
-		// file1.txt\nfile2.png\n
+		let res;
 
+		try {
+			res = await fetch('/uploads/', { method: 'GET' });
+		} catch (e) {
+			console.error("Network error:", e);
+			return;  // nothing to render
+		}
+		// If autoindex is OFF → server returns 403 or 404 → STOP
+		if (!res.ok) {
+			console.warn("Uploads directory not accessible:", res.status);
+			return;  // do not show garbage HTML
+		}
+		// If OK, directory returned a plain-text list
+		const text = await res.text();
+		// sometimes response is empty -> no files
+		if (!text.trim()) {
+			document.querySelector("#filetable tbody").innerHTML = "";
+			return;
+		}
 		const lines = text.split('\n').filter(x => x.trim() !== '');
-		console.log("LINES2", lines);
 		const tbody = document.querySelector("#filetable tbody");
 		tbody.innerHTML = "";
-
 		for (let file of lines) {
 			const row = document.createElement("tr");
-
 			row.innerHTML = `
 				<td>${file}</td>
 				<td><button class="del-btn" onclick="deleteFile('${file}')">Delete</button></td>
 			`;
 			tbody.appendChild(row);
 		}
-	}
+}
 
 	async function deleteFile(filename) {
 		const res = await fetch('/uploads/' + encodeURIComponent(filename), {
 			method: 'DELETE'
 		});
-
 		if (res.status === 204 || res.status === 200) {
 			document.getElementById('msg').innerHTML =
 				"✔ File deleted: " + filename;
 			loadFiles();
+			
 		} else {
 			document.getElementById('msg').innerHTML =
 				"❌ Error deleting: " + filename + " (status " + res.status + ")";
 		}
 	}
-
 	loadFiles();
 </script>
 
