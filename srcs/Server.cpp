@@ -9,7 +9,7 @@ Server::Server()
 	  _root(""),
 	  _index("index.html"),
 	  _isDefault(false),
-	  _autoindex(true),
+	  _autoindex(false),
 	  _hasListen(false),
 	  _hasRoot(false)  { }
 
