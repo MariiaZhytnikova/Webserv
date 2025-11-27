@@ -28,6 +28,10 @@ std::string Session::getSession(const std::string& key) const {
 	return (it != _data.end()) ? it->second : "";
 }
 
+const std::map<std::string, std::string>& Session::getData() const {
+	return _data;
+}
+
 void Session::touch() { _lastAccess = time(NULL); }
 
 bool Session::expired() const {

@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <map>
+#include <vector>
 
 /* HTTP Response
 
@@ -29,6 +30,7 @@ private:
 	std::string _statusMessage;
 	std::map<std::string, std::string> _headers;
 	std::string _body;
+	std::vector<std::string> _setCookies;
 
 public:
 	HttpResponse();
@@ -46,4 +48,8 @@ public:
 	const std::string& getBody() const;
 	int getStatusCode() const;
 	const std::map<std::string, std::string>& getHeaders() const;
+
+	void setCookie(const std::string& key,
+				const std::string& value,
+				const std::string& attrs = "Path=/; HttpOnly; SameSite=Lax");
 };

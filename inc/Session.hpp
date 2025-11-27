@@ -20,6 +20,7 @@ public:
 
 	std::string			getSession(const std::string& key) const;
 	const std::string&	getId() const ;
+	const std::map<std::string, std::string>& getData() const;
 
 	void				set(const std::string& key, const std::string& value);
 

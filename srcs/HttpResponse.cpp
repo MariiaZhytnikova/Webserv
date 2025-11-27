@@ -33,9 +33,17 @@ std::string HttpResponse::statusMessageForCode(int code) {
 
 std::string HttpResponse::serialize() const {
 	std::string response = "HTTP/1.1 " + std::to_string(_statusCode) + " " + _statusMessage + "\r\n";
+
+	// normal headers
 	for (std::map<std::string,std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
 		response += it->first + ": " + it->second + "\r\n";
 	}
+
+	// cookie headers
+	for (const std::string& cookie : _setCookies) {
+		response += "Set-Cookie: " + cookie + "\r\n";
+	}
+	
 	response += "\r\n" + _body;
 	return response;
 }
@@ -49,3 +57,9 @@ void HttpResponse::setBody(const std::string& body) { _body = body; }
 const std::string& HttpResponse::getBody() const { return _body; }
 int HttpResponse::getStatusCode() const { return _statusCode; }
 const std::map<std::string, std::string>& HttpResponse::getHeaders() const { return _headers; }
+
+void HttpResponse::setCookie(const std::string& key,
+							 const std::string& value,
+							 const std::string& attrs) {
+	_setCookies.push_back(key + "=" + value + "; " + attrs);
+}

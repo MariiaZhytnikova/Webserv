@@ -27,7 +27,10 @@ void RequestHandler::handle(int listenPort) {
 	_keepAlive = true;
 
 	try {
-		std::string sessionId = _request.returnHeaderValue("cookie", "session_id");
+		std::string sessionId = _request.getCookie("session_id");
+		Logger::log(DEBUG, std::string("_request.getCookie(session_id): ") + sessionId);
+
+		_newSession = false;
 
 		// 🔹 Close connection if server request it
 		if (_request.isHeaderValue("connection", "close"))
@@ -36,13 +39,18 @@ void RequestHandler::handle(int listenPort) {
 		// 🔹 If no cookie was sent, make a new one
 		if (sessionId.empty()) {
 			sessionId = Session::generateSessionId();
-			
+			_newSession = true;
 		}
+		_session = &_serverManager.getSessionManager().getOrCreate(sessionId);
+		_session->touch();
+		handleVisitCounter();
 
-		Session& session = _serverManager.getSessionManager().getOrCreate(sessionId);
-		session.set("last_path", _request.getPath());
+		Logger::log(DEBUG, std::string("Sesson ID: ") + sessionId);
+
 		// 🔹 Find matching location
 		Location loc = srv.findLocation(_request.getPath());
+
+		Logger::log(ERROR, std::string("Path in location") + loc.getPath());
 		// 🔹 Check request
 		if (RequestValidator::check(*this, srv,loc) == false)
 			return;
@@ -133,6 +141,15 @@ bool sendAll(int clientFd, const std::string &data) {
 void RequestHandler::sendResponse(const HttpResponse& other) {
 
 	HttpResponse res = other;
+	if (_newSession) {
+		res.setCookie("session_id", _session->getId());
+	}
+
+	if (_session) {
+		for (const auto& kv : _session->getData()) {
+			res.setCookie(kv.first, kv.second, "Path=/");
+		}
+	}
 
 	if (_keepAlive == false) {
 		// Logger::log(INFO, "connection closed by client request fd=" + std::to_string(_clientFd));
@@ -350,4 +367,23 @@ void RequestHandler::handleHead(const Server& srv, const Location& loc)
 	err.setHeader("Connection", "close");
 
 	sendResponse(err);
+}
+
+void RequestHandler::handleVisitCounter() {
+	std::string path = _request.getPath();
+
+	bool isAsset = endsWith(path, ".css") ||
+				endsWith(path, ".js") ||
+				endsWith(path, ".png") ||
+				endsWith(path, ".jpg") ||
+				endsWith(path, ".ico");
+
+	if (!isAsset) {
+		std::string visits = _session->getSession("visits");
+		if (visits.empty())
+			visits = "0";
+
+		int count = std::atoi(visits.c_str()) + 1;
+		_session->set("visits", std::to_string(count));
+	}
 }

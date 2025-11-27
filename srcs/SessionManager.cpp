@@ -3,15 +3,18 @@
 SessionManager::SessionManager() {}
 
 Session& SessionManager::getOrCreate(const std::string& id) {
-	std::map<std::string, Session>::iterator it = _sessions.find(id);
-	if (it != _sessions.end()) {
-		it->second.touch();
-		return it->second;
+	if (!id.empty()) {
+		auto it = _sessions.find(id);
+		if (it != _sessions.end()) {
+			it->second.touch();
+			return it->second;
+		}
 	}
-	Session newSession(id.empty() ? Session() : Session(id));
-	std::string sid = newSession.getId();
-	_sessions[sid] = newSession;
-	return _sessions[sid];
+
+	// create new session
+	std::string newId = Session::generateSessionId();
+	_sessions[newId] = Session(newId);
+	return _sessions[newId];
 }
 
 bool SessionManager::exists(const std::string& id) const {

@@ -9,7 +9,9 @@ HttpRequest::HttpRequest(const std::string& raw)
 	std::istringstream stream(raw);
 	parseRequestLine(stream);
 	parseHeaders(stream);
+	parseCookies();
 	parseBody(stream);
+
 }
 
 void HttpRequest::parseRequestLine(std::istringstream& stream) {
@@ -77,8 +79,9 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 		_headers.insert(std::make_pair(key, value));
 	}
 
-	for (auto &pairs : _headers)
-		Logger::log(TRACE, std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
+	// for (auto &pairs : _headers)
+	// 	Logger::log(TRACE, std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
+	
 }
 
 void HttpRequest::parseBody(std::istringstream& stream) {
@@ -108,6 +111,32 @@ std::string HttpRequest::getHeader(const std::string& key) const {
 	return "";
 }
 
+void HttpRequest::parseCookies() {
+	auto range = _headers.equal_range("cookie");
+	Logger::log(WARNING, "cookie received: " + getHeader("cookie"));
+
+	for (auto it = range.first; it != range.second; ++it) {
+		const std::string& headerValue = it->second;
+
+		// split by ";"
+		std::istringstream s(headerValue);
+		std::string kv;
+
+		while (std::getline(s, kv, ';')) {
+			size_t eq = kv.find('=');
+			if (eq == std::string::npos)
+				continue;
+
+			std::string key = trim(kv.substr(0, eq));
+			std::string val = trim(kv.substr(eq + 1));
+
+			if (!key.empty())
+				_cookies[key] = val;
+			Logger::log(WARNING, "cookie received: " + key + " = " + val);
+		}
+	}
+}
+
 const std::string& HttpRequest::getMethod() const { return _method; }
 const std::string& HttpRequest::getPath() const { return _path; }
 const std::string& HttpRequest::getVersion() const { return _version; }
@@ -127,6 +156,13 @@ bool HttpRequest::isHeaderValue(const std::string& key,
 		}
 	}
 	return false;
+}
+
+std::string HttpRequest::getCookie(const std::string& key) const {
+	auto it = _cookies.find(key);
+	if (it != _cookies.end())
+		return it->second;
+	return "";
 }
 
 std::string HttpRequest::returnHeaderValue(const std::string& key,

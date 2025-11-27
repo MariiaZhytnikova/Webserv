@@ -39,11 +39,13 @@ inline HttpMethod stringToMethod(const std::string& m) {
 
 class RequestHandler {
 private:
+	Session*		_session;
 	ServerManager&	_serverManager;
 	HttpRequest		_request;
 	int				_clientFd;
 	bool			_keepAlive;
 	bool			_processed = false;
+	bool			_newSession;
 
 	HttpMethod getMethod() const;
 
@@ -53,6 +55,7 @@ private:
 	void handleDelete(Server& srv, Location& loc);
 	void handlePut(const Server& srv, const Location& loc);
 	void handleHead(const Server& srv, const Location& loc);
+	void handleVisitCounter();
 
 public:
 	RequestHandler(ServerManager& manager, const std::string& rawRequest, int clientFd);
