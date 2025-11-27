@@ -9,6 +9,15 @@
 #include <unordered_map>
 #include <poll.h>
 
+const size_t MAX_HEADER_SIZE = 8192;
+
+struct ClientState {
+	int requestCount;
+	time_t lastActivity;
+};
+
+class RequestHandler;
+
 class ServerManager {
 private:
 	std::vector<Server>						_servers;
@@ -17,11 +26,17 @@ private:
 	std::unordered_map<int, std::string>	_clientBuffers; // client fd → received data
 	std::map<int,int>						_clientToListenFd;
 	SessionManager							_sessionManager;
+	std::unordered_map<int, ClientState>	_clientState;
+	std::vector<int>						_toClose;
 
 	void setupSockets();				// create/bind/listen
 	void acceptNewClient(int listenFd);
 	void readFromClient(int clientFd);
-	void handleRequest(int clientFd);
+
+	bool readSocketIntoBuffer(int clientFd, std::string &buf);
+	bool hasFullRequest(const std::string &buf, size_t &reqEnd);
+	std::string extractNextRequest(std::string &buf, size_t reqEnd);
+	bool shouldCloseAfterRequest(int fd, const RequestHandler &h);
 
 public:
 	ServerManager() = delete;

@@ -35,10 +35,12 @@ class HttpRequest {
 		std::string _version;
 		std::string _body;
 		std::multimap<std::string, std::string> _headers;
+		std::map<std::string, std::string> _cookies;
 
 		void parseRequestLine(std::istringstream& stream);
 		void parseHeaders(std::istringstream& stream);
 		void parseBody(std::istringstream& stream);
+		void parseCookies();
 
 	public:
 		HttpRequest(const std::string& raw);
@@ -53,6 +55,7 @@ class HttpRequest {
 		std::string			getHeader(const std::string& key) const;
 		const std::multimap<std::string, std::string>& getHeaders() const;
 		const std::string&	getBody() const;
+		std::string getCookie(const std::string& key) const;
 
 		bool	isHeaderValue(const std::string& key, const std::string& value) const;
 		std::string	returnHeaderValue(const std::string& key, const std::string& value) const;

@@ -226,3 +226,12 @@ std::string sanitizeFilename(const std::string &n) {
 			out.push_back(c);
 	return out.empty() ? "upload.bin" : out;
 };
+
+bool endsWith(const std::string& str, const std::string& suffix) {
+	if (suffix.size() > str.size())
+		return false;
+	return std::equal(
+		suffix.rbegin(), suffix.rend(),
+		str.rbegin()
+	);
+}
