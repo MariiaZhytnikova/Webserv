@@ -202,11 +202,11 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 		// Normalize path: remove all leading slashes
 		fullPath = baseRoot + "/" + cleanReq;
 	}
-		Logger::log(ERROR,
-	"AUTOINDEX loc=" + std::string(loc.getAutoindex() ? "ON" : "OFF") +
-	" srv=" + std::string(srv.getAutoindex() ? "ON" : "OFF") +
-	" path=" + loc.getPath()
-	);
+	// 	Logger::log(ERROR,
+	// "AUTOINDEX loc=" + std::string(loc.getAutoindex() ? "ON" : "OFF") +
+	// " srv=" + std::string(srv.getAutoindex() ? "ON" : "OFF") +
+	// " path=" + loc.getPath()
+	// );
 	struct stat st;
 	// Check if the requested path exists and get file information
 	if (stat(fullPath.c_str(), &st) != 0) {

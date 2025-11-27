@@ -113,7 +113,7 @@ std::string HttpRequest::getHeader(const std::string& key) const {
 
 void HttpRequest::parseCookies() {
 	auto range = _headers.equal_range("cookie");
-	Logger::log(WARNING, "cookie received: " + getHeader("cookie"));
+	// Logger::log(DEBUG, "cookie received: " + getHeader("cookie"));
 
 	for (auto it = range.first; it != range.second; ++it) {
 		const std::string& headerValue = it->second;
@@ -132,7 +132,7 @@ void HttpRequest::parseCookies() {
 
 			if (!key.empty())
 				_cookies[key] = val;
-			Logger::log(WARNING, "cookie received: " + key + " = " + val);
+			// Logger::log(WARNING, "cookie received: " + key + " = " + val);
 		}
 	}
 }

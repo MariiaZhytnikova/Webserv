@@ -28,7 +28,6 @@ void RequestHandler::handle(int listenPort) {
 
 	try {
 		std::string sessionId = _request.getCookie("session_id");
-		Logger::log(DEBUG, std::string("_request.getCookie(session_id): ") + sessionId);
 
 		_newSession = false;
 
@@ -45,12 +44,11 @@ void RequestHandler::handle(int listenPort) {
 		_session->touch();
 		handleVisitCounter();
 
-		Logger::log(DEBUG, std::string("Sesson ID: ") + sessionId);
+		// Logger::log(DEBUG, std::string("Sesson ID: ") + sessionId);
 
 		// 🔹 Find matching location
 		Location loc = srv.findLocation(_request.getPath());
 
-		Logger::log(ERROR, std::string("Path in location") + loc.getPath());
 		// 🔹 Check request
 		if (RequestValidator::check(*this, srv,loc) == false)
 			return;
