@@ -144,8 +144,13 @@ void RequestHandler::sendResponse(const HttpResponse& other) {
 	}
 
 	if (_session) {
-		for (const auto& kv : _session->getData()) {
-			res.setCookie(kv.first, kv.second, "Path=/");
+		// Only send session-owned cookies
+		if (_session->has("visits")) {
+			res.setCookie("visits", _session->getSession("visits"), "Path=/");
+		}
+		// Session ID only if new
+		if (_newSession) {
+			res.setCookie("session_id", _session->getId(), "Path=/");
 		}
 	}
 
@@ -368,20 +373,15 @@ void RequestHandler::handleHead(const Server& srv, const Location& loc)
 }
 
 void RequestHandler::handleVisitCounter() {
-	std::string path = _request.getPath();
-
-	bool isAsset = endsWith(path, ".css") ||
-				endsWith(path, ".js") ||
-				endsWith(path, ".png") ||
-				endsWith(path, ".jpg") ||
-				endsWith(path, ".ico");
-
-	if (!isAsset) {
+	std::string str = _request.getPath();
+	Logger::log(DEBUG, "path in handleVisitCounter:" + str);
+	if (str == "/") {
 		std::string visits = _session->getSession("visits");
 		if (visits.empty())
 			visits = "0";
 
 		int count = std::atoi(visits.c_str()) + 1;
 		_session->set("visits", std::to_string(count));
+		Logger::log(DEBUG, "number of visits:" + std::to_string(count));
 	}
 }

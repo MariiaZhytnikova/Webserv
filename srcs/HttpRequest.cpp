@@ -27,7 +27,17 @@ void HttpRequest::parseRequestLine(std::istringstream& stream) {
 	if (_path.empty())
 		_path = "/";
 
-	Logger::log(DEBUG, std::string("path in request:") + _path);
+	// split query and path
+	size_t qmark = _path.find('?');
+	if (qmark != std::string::npos) {
+		_queryString = _path.substr(qmark + 1);
+		_path = _path.substr(0, qmark);
+	} else {
+		_queryString.clear();
+	}
+
+	Logger::log(DEBUG, "path in request:" + _path);
+	Logger::log(DEBUG, "query string:" + _queryString);
 }
 
 void HttpRequest::parseHeaders(std::istringstream& stream) {
@@ -142,6 +152,7 @@ const std::string& HttpRequest::getPath() const { return _path; }
 const std::string& HttpRequest::getVersion() const { return _version; }
 const std::multimap<std::string, std::string>& HttpRequest::getHeaders() const { return _headers; }
 const std::string& HttpRequest::getBody() const { return _body; }
+const std::string	HttpRequest::getQueryString() const { return _queryString; }
 
 bool HttpRequest::isHeaderValue(const std::string& key,
 								const std::string& value) const {

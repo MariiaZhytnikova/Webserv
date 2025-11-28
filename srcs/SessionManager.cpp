@@ -3,15 +3,20 @@
 SessionManager::SessionManager() {}
 
 Session& SessionManager::getOrCreate(const std::string& id) {
+	// If ID exists → return the same session
 	if (!id.empty()) {
 		auto it = _sessions.find(id);
 		if (it != _sessions.end()) {
 			it->second.touch();
 			return it->second;
 		}
+
+		// ID does not exist → create session USING SAME ID
+		_sessions[id] = Session(id);
+		return _sessions[id];
 	}
 
-	// create new session
+	// No ID provided → generate new one
 	std::string newId = Session::generateSessionId();
 	_sessions[newId] = Session(newId);
 	return _sessions[newId];
