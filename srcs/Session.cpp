@@ -37,3 +37,7 @@ void Session::touch() { _lastAccess = time(NULL); }
 bool Session::expired() const {
 	return (difftime(time(NULL), _lastAccess) > _expirySeconds);
 }
+
+bool Session::has(const std::string& key) const {
+	return _data.count(key);
+}

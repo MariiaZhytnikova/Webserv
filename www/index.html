@@ -113,14 +113,15 @@ siege -b http://localhost:8080/pages/ok.html</code></pre>
 		</div>
 		<script>
 			const toggle = document.getElementById("theme-toggle");
-		
+			
+			// --- Read cookies ---
 			const cookies = {};
 			document.cookie.split(";").forEach(pair => {
 				const [k, v] = pair.trim().split("=");
 				if (k && v) cookies[k] = v;
 			});
-		
-			// Load theme from cookie
+			
+			// --- Apply theme from cookie ---
 			if (cookies.theme === "dark") {
 				toggle.checked = true;
 				document.body.classList.remove("light");
@@ -128,19 +129,21 @@ siege -b http://localhost:8080/pages/ok.html</code></pre>
 				toggle.checked = false;
 				document.body.classList.add("light");
 			}
-		
+			
+			// --- Change theme ---
 			toggle.addEventListener("change", () => {
-			const mode = toggle.checked ? "light" : "dark";
-
-			fetch(`/theme?mode=${mode}`, { method: "GET" })
-				.then(() => {
-					if (mode === "light") {
-						document.body.classList.add("light");
-					} else {
-						document.body.classList.remove("light");
-					}
-				});
-		});
-		</script>
+				const mode = toggle.checked ? "dark" : "light";
+			
+				// Save cookie (expires in ~1 year)
+				document.cookie = `theme=${mode}; Path=/; Max-Age=31536000`;
+			
+				// Apply theme instantly
+				if (mode === "light") {
+					document.body.classList.add("light");
+				} else {
+					document.body.classList.remove("light");
+				}
+			});
+			</script>
 	</body>
 </html>

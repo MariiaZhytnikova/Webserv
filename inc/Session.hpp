@@ -26,6 +26,7 @@ public:
 
 	void touch();
 	bool expired() const;
+	bool has(const std::string& key) const;
 
 	static std::string	generateSessionId();
 };
