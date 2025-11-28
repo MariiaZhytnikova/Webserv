@@ -138,13 +138,14 @@ label {
 	border-bottom: 1px solid #333;
 }
 
-/* File name cell */
+
 #filetable td {
 	padding: 12px 8px;
 }
 
 #filetable td:first-child {
 	width: 70%;
+	text-align: center;
 }
 
 .del-btn {
