@@ -41,16 +41,7 @@ HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::strin
 std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scriptPath, const std::string& serverRoot) const {
 
 	std::map<std::string, std::string> env;
-	// Separate path and query
 	std::string fullPath = _request.getPath();
-	std::string query;
-	size_t qpos = fullPath.find('?');
-	if (qpos != std::string::npos) {
-	query = fullPath.substr(qpos + 1);
-	fullPath = fullPath.substr(0, qpos);
-	}
-
-	// Derive SCRIPT_NAME from the request path
 	std::string scriptName = scriptPath.substr(scriptPath.find_last_of('/') + 1);
 
 	// SCRIPT_NAME: the executed CGI file
@@ -70,7 +61,7 @@ std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scrip
 	env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	env["SCRIPT_FILENAME"] = scriptPath;
 	env["REQUEST_METHOD"] = _request.getMethod();
-	env["QUERY_STRING"] = query;
+	env["QUERY_STRING"] = _request.getQueryString();
 	env["CONTENT_LENGTH"] = std::to_string(_request.getBody().size());
 	env["CONTENT_TYPE"] = _request.getHeader("Content-Type");
 	env["SERVER_PROTOCOL"] = "HTTP/1.1";
@@ -105,7 +96,6 @@ std::string CgiHandler::runProcess(
 		close(inPipe[1]);
 		close(outPipe[0]);
 
-		// Build environment
 		std::vector<std::string> envStrings;
 		std::vector<char*> envp;
 		for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it) {
@@ -114,15 +104,11 @@ std::string CgiHandler::runProcess(
 		for (size_t i = 0; i < envStrings.size(); ++i)
 			envp.push_back(const_cast<char*>(envStrings[i].c_str()));
 		envp.push_back(NULL);
-
-		// Prepare args
 		char* args[] = {
 			const_cast<char*>(interpreterPath.c_str()),
 			const_cast<char*>(scriptPath.c_str()),
 			NULL
 		};
-
-		// Execute CGI interpreter
 		execve(interpreterPath.c_str(), args, envp.data());
 		perror("execve failed");
 		_exit(1);
