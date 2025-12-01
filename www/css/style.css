@@ -182,7 +182,6 @@ p.lead {
 	color: #071226;
 	font-weight: 600;
 	text-decoration: none;
-
 	&:hover {
 		background:  #f4b1ba;
 	}
@@ -223,7 +222,19 @@ p.lead {
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	text-decoration: none;
 	color: inherit;
-	transition: background 0.2s ease;
+	transition: background 0.2s ease,
+				box-shadow 0.25s ease,
+				transform 0.25s ease,
+				color 0.25s ease;
+	&:hover {
+		 background: rgba(244, 177, 186, 0.15);
+		box-shadow:
+		0 0 10px rgba(244, 177, 186, 0.45),
+		0 0 18px rgba(244, 177, 186, 0.30),
+		0 0 30px rgba(244, 177, 186, 0.20);
+		color: #f4b1ba;
+		transform: translateY(-2px) scale(1.01);
+	}
 }
 
 .team .member .arrow {
@@ -259,7 +270,6 @@ a.inline-link {
 	color: var(--accent);
 	text-decoration: none
 }
-
 
 .code {
 	font-size: 120px;

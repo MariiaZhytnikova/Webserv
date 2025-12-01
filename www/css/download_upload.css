@@ -25,10 +25,9 @@ h1 {
 	text-decoration: none;
 	border-radius: 8px;
 	transition: background 0.2s;
-}
-
-.btn:hover {
-	background: #ffd54d;
+	&:hover {
+		background:  #f4b1ba;
+	}
 }
 
 .upload-form {
@@ -87,10 +86,9 @@ label {
 	cursor: pointer;
 	font-weight: bold;
 	width: 100%;
-}
-
-.upload-btn:hover {
-	background: #4cf0e3;
+	&:hover {
+		background:  #f4b1ba;
+	}
 }
 
 .info {
