@@ -23,6 +23,7 @@ ServerManager::~ServerManager() {
 }
 
 const std::vector<Server>& ServerManager::getServers() const { return _servers; }
+SessionManager& ServerManager::getSessionManager() { return _sessionManager; }
 
 const Server& ServerManager::getServer(size_t index) const {
 	if (index >= _servers.size())
@@ -36,14 +37,10 @@ Server& ServerManager::getServer(size_t index) {
 	return _servers[index];
 }
 
-SessionManager& ServerManager::getSessionManager() { return _sessionManager; }
-
 void ServerManager::setupSockets() {
 	for (size_t i = 0; i < _servers.size(); ++i) {
 		Server& srv = _servers[i];
 		int port = srv.getListenPort();
-		// if (_portSocketMap.find(port) != _portSocketMap.end())
-		// 	continue; // socket for this port already exists
 
 		// check if a server is already bound to THIS port
 		bool portUsed = false;
@@ -58,7 +55,6 @@ void ServerManager::setupSockets() {
 				break;
 			}
 		}
-
 		if (portUsed) continue;
 
 		// Logger::log(DEBUG,
@@ -81,16 +77,16 @@ void ServerManager::setupSockets() {
 		if (fcntl(sock, F_SETFD, FD_CLOEXEC) == -1)
 			throw std::runtime_error("failed to set close-on-exec: " + std::string(strerror(errno)));
 
-/*  ----- bind()/listen() -----
-	from <netinet/in.h>
+	/*  ----- bind()/listen() -----
+		from <netinet/in.h>
 
-		struct sockaddr_in {
-			sa_family_t    sin_family;   // address family (AF_INET for IPv4)
-			in_port_t      sin_port;     // port number (16-bit), must be in network byte order
-			struct in_addr sin_addr;     // IPv4 address
-			char           sin_zero[8];  // padding, usually zeroed
-		};
-*/
+			struct sockaddr_in {
+				sa_family_t    sin_family;   // address family (AF_INET for IPv4)
+				in_port_t      sin_port;     // port number (16-bit), must be in network byte order
+				struct in_addr sin_addr;     // IPv4 address
+				char           sin_zero[8];  // padding, usually zeroed
+			};
+	*/
 		sockaddr_in addr;
 		memset(&addr, 0, sizeof(addr));
 
@@ -119,23 +115,23 @@ void ServerManager::setupSockets() {
 	}
 }
 
-/* 
-poll() - system call that allows your program to wait for activity on
-	multiple fds(sockets) at the same time, without busy-waiting.
+	/* 
+	poll() - system call that allows your program to wait for activity on
+		multiple fds(sockets) at the same time, without busy-waiting.
 
-	struct pollfd {
-		int fd;        // File descriptor
-		short events;  // Input to monitor (e.g., POLLIN)
-		short revents; // Event occured, filled by the OS
-};
+		struct pollfd {
+			int fd;        // File descriptor
+			short events;  // Input to monitor (e.g., POLLIN)
+			short revents; // Event occured, filled by the OS
+	};
 
-	Call poll() — it waits until something happens.
-	When poll() returns, check each fds[i].revents.
-	If POLLIN → read or accept connection.
-	If POLLOUT → send data.
-	If POLLERR or POLLHUP → close FD.
+		Call poll() — it waits until something happens.
+		When poll() returns, check each fds[i].revents.
+		If POLLIN → read or accept connection.
+		If POLLOUT → send data.
+		If POLLERR or POLLHUP → close FD.
 
-*/
+	*/
 
 void ServerManager::acceptNewClient(int listenFd) {
 	sockaddr_in clientAddr;
@@ -147,7 +143,7 @@ void ServerManager::acceptNewClient(int listenFd) {
 		return;
 	}
 
-	// MAX CLIENT LIMIT
+	// Check number of clients
 	if (_clientBuffers.size() >= 1024) {
 		Logger::log(WARNING, "too many clients, rejecting new FD=" 
 							+ std::to_string(clientFd));
