@@ -12,31 +12,6 @@
 #include <cstring>
 #include <sys/types.h>
 
-// Helper: read file into string (binary-safe)
-static bool readFile(const std::string& path, std::string& out) {
-	std::ifstream f(path.c_str(), std::ios::in | std::ios::binary);
-	if (!f) return false;
-	std::ostringstream ss;
-	ss << f.rdbuf();
-	out = ss.str();
-	return true;
-}
-
-static std::string detectMime(const std::string& path) {
-	std::string ext = getFileExtension(path);
-	if (ext == ".html" || ext == ".htm") return "text/html";
-	if (ext == ".css") return "text/css";
-	if (ext == ".js") return "application/javascript";
-	if (ext == ".json") return "application/json";
-	if (ext == ".png") return "image/png";
-	if (ext == ".jpg" || ext == ".jpeg") return "image/jpeg";
-	if (ext == ".gif") return "image/gif";
-	if (ext == ".txt") return "text/plain";
-	if (ext == ".svg") return "image/svg+xml";
-	if (ext == ".ico") return "image/x-icon";
-	return "application/octet-stream";
-}
-
 std::string resolveRoot(const Server& srv, const Location& loc){
 	//choose location root if defined; else server root
 	std::string root = loc.getRoot().empty()? srv.getRoot() : loc.getRoot();
@@ -50,46 +25,6 @@ std::string resolveRoot(const Server& srv, const Location& loc){
 	return root;
 }
 
-std::string ensureTrailingSlash(const std::string &s)
-{
-	if (s.empty()) return "/";
-
-	//check last char of the string
-	char last = s[s.size() - 1];
-
-	//if last char is already '/', nothing to change
-	if (last == '/') return s;
-
-	//otherwise, append '/' and return new string
-	std::string result = s + "/";
-
-	return result;
-}
-
-std::string trimLeadingSlash(const std::string &s) {
-		// If the string is empty, just return it as is.
-	if (s.empty()) {
-		return "";
-	}
-		// We will count how many leading '/' characters the string has.
-	size_t index = 0;
-
-	// Move index forward while:
-	//  - it is still inside the string
-	//  - the current character is '/'
-	while (index < s.size() && s[index] == '/') {
-		index++;
-	}
-	// Now 'index' points to the first non-'/' character
-	// Example:
-	//   s = "///uploads"
-	//   index becomes 3
-	//
-	// We return the substring starting from index to the end.
-	return s.substr(index);
-}
-
-// 
 std::optional<HttpResponse> handleDirectoryRequest(
 	const HttpRequest& req,
 	const Server& srv,
@@ -100,15 +35,14 @@ std::optional<HttpResponse> handleDirectoryRequest(
 	std::string reqPath = req.getPath();
 	fullPath = ensureTrailingSlash(fullPath);
 
-	// AUTOINDEX FINAL LOGIC (no extra helpers)
 	bool autoindex = loc.getAutoindex()
-					 ? true          // location ON
-					 : srv.getAutoindex();   // location OFF → use server value
+					 ? true					// location ON
+					 : srv.getAutoindex();	// location OFF → use server value
 
 	// 1. Special case: /uploads/
-	if (loc.getPath() == "/uploads" || loc.getPath() == "/uploads/") {
+	if (loc.getPath() == "/uploads/") {
 
-		if (!autoindex)    // if autoindex off → forbidden
+		if (!autoindex)		// if autoindex off → forbidden
 			return handler.makeErrorResponse(srv, 403);
 
 		DIR* dir = opendir(fullPath.c_str());
@@ -178,19 +112,14 @@ std::optional<HttpResponse> handleDirectoryRequest(
 		return res;
 	}
 	// 4. No index file + autoindex OFF → 403
-  
 	return handler.makeErrorResponse(srv, 403);
 }
-
-
 
 std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server& srv, const Location& loc, RequestHandler& handler) {
 	
 	std::string reqPath = req.getPath(); // e.g., /css/style.css
 	std::string baseRoot = resolveRoot(srv, loc); //./www
-
 	std::string cleanReq = trimLeadingSlash(reqPath);
-
 	std::string fullPath;
 
 	// 1. Handle root URL ("/") - return index.html (localhost:8080/)
@@ -202,18 +131,12 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 		// Normalize path: remove all leading slashes
 		fullPath = baseRoot + "/" + cleanReq;
 	}
-	// 	Logger::log(ERROR,
-	// "AUTOINDEX loc=" + std::string(loc.getAutoindex() ? "ON" : "OFF") +
-	// " srv=" + std::string(srv.getAutoindex() ? "ON" : "OFF") +
-	// " path=" + loc.getPath()
-	// );
 	struct stat st;
 	// Check if the requested path exists and get file information
 	if (stat(fullPath.c_str(), &st) != 0) {
 		Logger::log(ERROR, std::string("404 Not Found") + req.getPath());
 		return handler.makeErrorResponse(srv, 404);
 	}
-	
 	// 2. Redirect directories without trailing slash (browser cache must be cleared to test)
 	// This ensures consistent URL handling for directories
 	if (S_ISDIR(st.st_mode) && !reqPath.empty() && reqPath.back() != '/') {
@@ -235,7 +158,6 @@ std::optional<HttpResponse> serveGetStatic(const HttpRequest& req, const Server&
 		Logger::log(ERROR, std::string("403 Forbidden") + fullPath);
 		return handler.makeErrorResponse(srv, 403);
 	}
-
 	// Return successful response with file content
 	HttpResponse res(200, body);
 	res.setHeader("Content-Type", detectMime(fullPath));
