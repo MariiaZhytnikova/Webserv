@@ -99,7 +99,6 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 void HttpRequest::parseBody(std::istringstream& stream) {
 	size_t len = 0;
 
-	// multimap: use find()
 	std::multimap<std::string, std::string>::const_iterator it =
 		_headers.find("content-length");
 
@@ -152,7 +151,8 @@ void HttpRequest::parseCookies() {
 const std::string& HttpRequest::getMethod() const { return _method; }
 const std::string& HttpRequest::getPath() const { return _path; }
 const std::string& HttpRequest::getVersion() const { return _version; }
-const std::multimap<std::string, std::string>& HttpRequest::getHeaders() const { return _headers; }
+const std::multimap<std::string, std::string>& HttpRequest::getHeaders() const {
+	return _headers; }
 const std::string& HttpRequest::getBody() const { return _body; }
 const std::string	HttpRequest::getQueryString() const { return _queryString; }
 

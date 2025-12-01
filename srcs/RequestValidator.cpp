@@ -82,7 +82,8 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 	// 🔹 Version (only HTTP/1.1 allowed)
 	if (handl.getRequest().getVersion() != "HTTP/1.1") {
 		handl.sendResponse(handl.makeErrorResponse(srv, 505));
-		Logger::log(ERROR, std::string("505 HTTP version not supported: ") + handl.getRequest().getVersion());
+		Logger::log(ERROR, std::string("505 HTTP version not supported: ")
+			+ handl.getRequest().getVersion());
 		return false;
 	}
 
@@ -90,7 +91,8 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 	HttpMethod method = stringToMethod(handl.getRequest().getMethod());
 	if (method == METHOD_UNKNOWN) {
 		handl.sendResponse(handl.makeErrorResponse(srv, 501));
-		Logger::log(ERROR, std::string("501 method not implemented: ") + handl.getRequest().getMethod());
+		Logger::log(ERROR, std::string("501 method not implemented: ")
+			+ handl.getRequest().getMethod());
 		return false;
 	}
 
@@ -187,9 +189,15 @@ bool RequestValidator::checkUri(RequestHandler& handl, const Server& srv){
 	return true;
 }
 
-bool RequestValidator::isMethodAllowed(RequestHandler& handl, const std::vector<std::string>& allowed) {
+bool RequestValidator::isMethodAllowed(
+	RequestHandler& handl,
+	const std::vector<std::string>& allowed)
+	{
 	if (allowed.empty()) return true; // allow all if not specified
-	return std::find(allowed.begin(), allowed.end(), handl.getRequest().getMethod()) != allowed.end();
+	return std::find(
+		allowed.begin(),
+		allowed.end(),
+		handl.getRequest().getMethod()) != allowed.end();
 }
 
 bool RequestValidator::checkPost(RequestHandler& handl, Server& srv) {

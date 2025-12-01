@@ -13,25 +13,20 @@ Server::Server()
 	  _hasListen(false),
 	  _hasRoot(false)  { }
 
-// =====================
-// Getters
-// =====================
-int Server::getListenPort() const { return _port; }
-const std::vector<std::string>& Server::getServerNames() const { return _serverNames; }
-const std::vector<Location>& Server::getLocations() const { return _locations; }
-const std::string& Server::getHost() const { return _host; }
-const std::map<int, std::string>& Server::getErrorPages() const { return _errorPages; }
 
-size_t Server::getClientMaxBodySize() const { return _clientMaxBodySize; }
-const std::string& Server::getRoot() const { return _root; }
-const std::string& Server::getIndex() const { return _index; }
-bool Server::isDefault() const { return _isDefault; }
-bool Server::getAutoindex() const { return _autoindex; }
-const std::vector<std::string>& Server::getMethods() const { return _methods; }
+const std::vector<std::string>&		Server::getServerNames() const { return _serverNames; }
+const std::vector<Location>&		Server::getLocations() const { return _locations; }
+const std::vector<std::string>&		Server::getMethods() const { return _methods; }
+const std::map<int, std::string>&	Server::getErrorPages() const { return _errorPages; }
 
-// =====================
-// Setters
-// =====================
+const std::string&	Server::getHost() const { return _host; }
+const std::string&	Server::getRoot() const { return _root; }
+const std::string&	Server::getIndex() const { return _index; }
+
+size_t	Server::getClientMaxBodySize() const { return _clientMaxBodySize; }
+int		Server::getListenPort() const { return _port; }
+bool	Server::isDefault() const { return _isDefault; }
+bool	Server::getAutoindex() const { return _autoindex; }
 
 void Server::setListenPort(int port) { _port = port; }
 void Server::setServerName(const std::string& name) { _serverNames.push_back(name); }
