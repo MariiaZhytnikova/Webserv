@@ -62,19 +62,3 @@ class HttpRequest {
 		bool	isHeaderValue(const std::string& key, const std::string& value) const;
 		std::string	returnHeaderValue(const std::string& key, const std::string& value) const;
 };
-
-
-/*
-Client → Server
-	Cookie: session=abc123; theme=dark
-
-Server → Client
-	Set-Cookie: session=abc123; Path=/; HttpOnly
-
-	If you want to go a bit further (for your own testing or a “bonus” feel):
-
-	Parse Cookie: header in your HttpRequest class → store it as a map<string, string> cookies.
-
-	Add Set-Cookie: header in your HttpResponse when needed.
-
-*/

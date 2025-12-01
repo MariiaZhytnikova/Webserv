@@ -36,8 +36,8 @@ void HttpRequest::parseRequestLine(std::istringstream& stream) {
 		_queryString.clear();
 	}
 
-	Logger::log(DEBUG, "path in request:" + _path);
-	Logger::log(DEBUG, "query string:" + _queryString);
+	Logger::log(INFO, "requested path: '" + _path + "'");
+	// Logger::log(DEBUG, "query string:" + _queryString);
 }
 
 void HttpRequest::parseHeaders(std::istringstream& stream) {
@@ -90,7 +90,9 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 	}
 
 	// for (auto &pairs : _headers)
-	// 	Logger::log(TRACE, std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
+	// 	Logger::log(
+		// TRACE,
+		// std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
 	
 }
 

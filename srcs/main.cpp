@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 	signal(SIGINT, handleSignal);
 
 	Logger::init("./log/access.log", "./log/error.log");
-	Logger::log(INFO, "starting server...");
+	Logger::log(TRACE, "starting server...");
 	std::string config_path = "conf/default.conf";
 
 	if (argc > 2) {

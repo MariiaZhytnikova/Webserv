@@ -29,21 +29,21 @@ public:
 	~Server() = default;
 
 	// -------------------- Getters --------------------
-	const std::string& getHost() const;
-	int getListenPort() const;
-	const std::vector<std::string>& getServerNames() const;
-	const std::map<int, std::string>& getErrorPages() const;
-	
-	size_t getClientMaxBodySize() const;
-	const std::string& getRoot() const;
-	const std::string& getIndex() const;
-	bool isDefault() const;
-	bool getAutoindex() const;
-	const std::vector<std::string>& getMethods() const;
-	const std::vector<Location>& getLocations() const;
+	const std::vector<std::string>&		getServerNames() const;
+	const std::map<int, std::string>&	getErrorPages() const;
+	const std::vector<std::string>&		getMethods() const;
+	const std::vector<Location>&		getLocations() const;
 
-	bool hasListen() const;
-	bool hasRoot() const;
+	const std::string&	getHost() const;
+	const std::string&	getRoot() const;
+	const std::string&	getIndex() const;
+
+	int		getListenPort() const;
+	size_t	getClientMaxBodySize() const;
+	bool	isDefault() const;
+	bool	getAutoindex() const;
+	bool	hasListen() const;
+	bool	hasRoot() const;
 
 	// -------------------- Setters --------------------
 	void setHost(const std::string& host);
@@ -60,7 +60,7 @@ public:
 	void setRootFlag();
 
 	// -------------------- Locations --------------------
-	void addLocation(const Location& loc);
-	void addLocation(Location&& loc);
-	Location findLocation(const std::string& path) const;
+	void		addLocation(const Location& loc);
+	void		addLocation(Location&& loc);
+	Location	findLocation(const std::string& path) const;
 };

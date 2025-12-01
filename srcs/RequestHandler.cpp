@@ -22,7 +22,7 @@ RequestHandler::RequestHandler(ServerManager& manager,
 
 void RequestHandler::handle(int listenPort) {
 	Server& srv = matchServer(_request, listenPort);
-	Logger::log(INFO, "host: " + _request.getHeader("host"));
+	// Logger::log(INFO, "host: " + _request.getHeader("host"));
 	_processed = false;
 	_keepAlive = true;
 
@@ -70,8 +70,6 @@ void RequestHandler::handle(int listenPort) {
 			case METHOD_GET:	handleGet(srv, loc); break;
 			case METHOD_POST:	handlePost(srv, loc); break;
 			case METHOD_DELETE:	handleDelete(srv, loc); break;
-			case METHOD_PUT:	handlePut(srv, loc); break;
-			case METHOD_HEAD:	handleHead(srv, loc); break;
 			default:			sendResponse(makeErrorResponse(srv, 400)); break;
 		}
 	}
@@ -108,12 +106,15 @@ Server& RequestHandler::matchServer(const HttpRequest& req, int listenPort) {
 	return _serverManager.getServer(0);
 }
 
-HttpMethod RequestHandler::getMethod() const { return stringToMethod(_request.getMethod()); }
-const HttpRequest& RequestHandler::getRequest() const { return _request; }
-bool RequestHandler::keepAlive() const { return _keepAlive; }
-void RequestHandler::setKeepAlive(bool val) { _keepAlive = val; }
-void RequestHandler::markProcessed() { _processed = true; }
-bool RequestHandler::processed() const { return _processed; }
+const HttpRequest&	RequestHandler::getRequest() const { return _request; }
+
+bool	RequestHandler::keepAlive() const { return _keepAlive; }
+void	RequestHandler::setKeepAlive(bool val) { _keepAlive = val; }
+void	RequestHandler::markProcessed() { _processed = true; }
+bool	RequestHandler::processed() const { return _processed; }
+HttpMethod			RequestHandler::getMethod() const {
+	return stringToMethod(_request.getMethod());
+	}
 
 bool sendAll(int clientFd, const std::string &data) {
 	size_t totalSent = 0;
@@ -308,73 +309,9 @@ void RequestHandler::handleDelete(Server& srv, Location& loc) {
 	sendResponse(makeErrorResponse(srv, 404));
 }
 
-void RequestHandler::handlePut(const Server& srv, const Location& loc)
-{
-	(void)srv;
-	(void)loc;
-	std::string relPath = _request.getPath().substr(loc.getPath().length());
-	if (!relPath.empty() && relPath[0] == '/')
-		relPath.erase(0, 1);
-
-	std::string filePath = loc.getRoot() + "/" + relPath;
-
-	bool existed = (access(filePath.c_str(), F_OK) == 0);
-
-	int fd = open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (fd < 0) {
-		HttpResponse res(403, "Forbidden\n");
-		sendResponse(res);
-		return;
-	}
-
-	const std::string& body = _request.getBody();
-	write(fd, body.c_str(), body.size());
-	close(fd);
-
-	HttpResponse res;
-	if (existed)
-		res = HttpResponse(204);    // No Content
-	else
-		res = HttpResponse(201);    // Created
-
-	sendResponse(res);
-}
-
-void RequestHandler::handleHead(const Server& srv, const Location& loc)
-{
-	// Try serving the file using GET logic
-	if (auto res = serveGetStatic(_request, srv, loc, *this))
-	{
-		// Correct Content-Length based on actual body
-		size_t len = res->getBody().size();
-		res->setHeader("Content-Length", std::to_string(len));
-
-		// Remove body for HEAD
-		res->setBody("");
-
-		// MUST disable keep-alive BEFORE sendResponse()
-		_keepAlive = false;
-		res->setHeader("Connection", "close");
-
-		sendResponse(*res);
-		return;
-	}
-
-	// Error version
-	HttpResponse err = makeErrorResponse(srv, 404);
-	size_t len = err.getBody().size();
-	err.setHeader("Content-Length", std::to_string(len));
-	err.setBody("");
-
-	_keepAlive = false;
-	err.setHeader("Connection", "close");
-
-	sendResponse(err);
-}
-
 void RequestHandler::handleVisitCounter() {
 	std::string str = _request.getPath();
-	Logger::log(DEBUG, "path in handleVisitCounter:" + str);
+	// Logger::log(DEBUG, "path in handleVisitCounter:" + str);
 	if (str == "/") {
 		std::string visits = _session->getSession("visits");
 		if (visits.empty())
@@ -382,6 +319,6 @@ void RequestHandler::handleVisitCounter() {
 
 		int count = std::atoi(visits.c_str()) + 1;
 		_session->set("visits", std::to_string(count));
-		Logger::log(DEBUG, "number of visits:" + std::to_string(count));
+		// Logger::log(DEBUG, "number of visits:" + std::to_string(count));
 	}
 }

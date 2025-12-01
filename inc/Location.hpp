@@ -27,7 +27,7 @@ public:
 	Location(const Location& other) = default;
 	Location& operator=(const Location& other) = default;
 
-	// Getters
+	// -------------------- Getters --------------------
 	const std::string& getPath() const;
 	const std::vector<std::string>& getMethods() const;
 	const std::string& getRedirect() const;
@@ -41,7 +41,7 @@ public:
 	int   getReturnCode() const;
 	const std::string& getReturnTarget() const;
 
-	// Setters
+	// -------------------- Setters --------------------
 	void setPath(const std::string& p);
 	void setMethods(const std::vector<std::string>& m);
 	void setClientMaxBodySize(size_t size);
