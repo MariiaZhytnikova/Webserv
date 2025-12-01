@@ -186,10 +186,26 @@ void ServerManager::readFromClient(int clientFd) {
 	if (!readSocketIntoBuffer(clientFd, buf))
 		return;
 
-	if (buf.size() > MAX_HEADER_SIZE) {
+	// ✅ NEW: Find where headers end
+		// Check if header is too large (only check before we find the end of headers)
+	size_t headerEnd = buf.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+		headerEnd = buf.find("\n\n");
+
+	// ✅ NEW: Only reject if HEADERS are too big
+	// If we haven't found the end of headers yet and buffer is too large
+	Logger::log(ERROR, "MAX HEADER SIZE" + std::to_string(MAX_HEADER_SIZE));
+	if (headerEnd == std::string::npos && buf.size() > MAX_HEADER_SIZE) {
 		_toClose.push_back(clientFd);
 		return;
 	}
+	// The server was rejecting legitimate file uploads because it thought the HEADERS were too big,
+	//  when actually it was counting the FILE DATA too!
+	// old -This code rejects the entire request if the buffer is larger than 8KB
+	// 	if (buf.size() > MAX_HEADER_SIZE) {
+	// 	_toClose.push_back(clientFd);
+	// 	return;
+	// }
 
 	// Process all complete requests (pipelining)
 	size_t reqEnd;
