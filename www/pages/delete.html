@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<link rel="stylesheet" href="/css/download_upload.css">
@@ -9,39 +10,39 @@
 <body>
 
 	<h1>Uploaded Files</h1>
-<div class="delete">
-	<table id="filetable" class="test">
-		<thead class="test">
-		<tr><th>File</th><th>Action</th></tr>
-		</thead>
-		<tbody></tbody>
-	</table>
-</div>
+	<div class="delete">
+		<table id="filetable" class="test">
+			<thead class="test">
+				<tr>
+					<th>File</th>
+					<th>Action</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+	</div>
 	<div id="msg"></div>
 	<a class="btn" href="/pages/upload.html" style="margin-top: 20px;">
-			Back to Uploads
+		Back to Uploads
 	</a>
 	<a class="btn" href="/">Back to home</a>
-	</body>
+</body>
 
 <script>
-		async function loadFiles() {
+	async function loadFiles() {
 		let res;
 
 		try {
 			res = await fetch('/uploads/', { method: 'GET' });
 		} catch (e) {
 			console.error("Network error:", e);
-			return;  // nothing to render
+			return;
 		}
-		// If autoindex is OFF → server returns 403 or 404 → STOP
 		if (!res.ok) {
 			console.warn("Uploads directory not accessible:", res.status);
-			return;  // do not show garbage HTML
+			return;
 		}
-		// If OK, directory returned a plain-text list
 		const text = await res.text();
-		// sometimes response is empty -> no files
 		if (!text.trim()) {
 			document.querySelector("#filetable tbody").innerHTML = "";
 			return;
@@ -57,7 +58,7 @@
 			`;
 			tbody.appendChild(row);
 		}
-}
+	}
 
 	async function deleteFile(filename) {
 		const res = await fetch('/uploads/' + encodeURIComponent(filename), {
@@ -67,7 +68,7 @@
 			document.getElementById('msg').innerHTML =
 				"✔ File deleted: " + filename;
 			loadFiles();
-			
+
 		} else {
 			document.getElementById('msg').innerHTML =
 				"❌ Error deleting: " + filename + " (status " + res.status + ")";
@@ -77,4 +78,5 @@
 </script>
 
 </body>
+
 </html>
