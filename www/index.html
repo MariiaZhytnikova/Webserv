@@ -56,7 +56,13 @@ curl -i -F "file=@test.txt" http://localhost:8080/upload
 printf "METHOD / HTTP/1.1\r\n Header1:value \r\n Header2:value \r\n\r\n body" | nc localhost 8080
 printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080
 printf "KILL / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\nConnection: close\r\n\r\nhello=123" | nc localhost 8080
-siege -b http://localhost:8080/pages/ok.html</code></pre>
+siege -b http://localhost:8080/pages/ok.html
+siege -v -r100 -c10 'http://localhost:8080/uploads/echo POST hello=world'
+curl -v -X POST -d "hello=world" http://localhost:8080/uploads/echo
+touch www/uploads/tmp.txt
+siege -v -r100 -c10 'http://localhost:8080/uploads/tmp.txt DELETE'
+
+							</code></pre>
 							<div class="muted" style="margin-top:8px">Replace port/path as configured in your
 								`default.conf`</div>
 						</section>
