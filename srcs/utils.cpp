@@ -235,3 +235,66 @@ bool endsWith(const std::string& str, const std::string& suffix) {
 		str.rbegin()
 	);
 }
+
+//Helper: read file into string (binary-safe)
+bool readFile(const std::string& path, std::string& out) {
+	std::ifstream f(path.c_str(), std::ios::in | std::ios::binary);
+	if (!f) return false;
+	std::ostringstream ss;
+	ss << f.rdbuf();
+	out = ss.str();
+	return true;
+}
+
+std::string detectMime(const std::string& path) {
+	std::string ext = getFileExtension(path);
+	if (ext == ".html" || ext == ".htm") return "text/html";
+	if (ext == ".css") return "text/css";
+	if (ext == ".js") return "application/javascript";
+	if (ext == ".json") return "application/json";
+	if (ext == ".png") return "image/png";
+	if (ext == ".jpg" || ext == ".jpeg") return "image/jpeg";
+	if (ext == ".gif") return "image/gif";
+	if (ext == ".txt") return "text/plain";
+	if (ext == ".svg") return "image/svg+xml";
+	if (ext == ".ico") return "image/x-icon";
+	return "application/octet-stream";
+}
+
+std::string ensureTrailingSlash(const std::string &s) {
+	if (s.empty()) return "/";
+
+	//check last char of the string
+	char last = s[s.size() - 1];
+
+	//if last char is already '/', nothing to change
+	if (last == '/') return s;
+
+	//otherwise, append '/' and return new string
+	std::string result = s + "/";
+
+	return result;
+}
+
+std::string trimLeadingSlash(const std::string &s) {
+		// If the string is empty, just return it as is.
+	if (s.empty()) {
+		return "";
+	}
+		// We will count how many leading '/' characters the string has.
+	size_t index = 0;
+
+	// Move index forward while:
+	//  - it is still inside the string
+	//  - the current character is '/'
+	while (index < s.size() && s[index] == '/') {
+		index++;
+	}
+	// Now 'index' points to the first non-'/' character
+	// Example:
+	//   s = "///uploads"
+	//   index becomes 3
+	//
+	// We return the substring starting from index to the end.
+	return s.substr(index);
+}

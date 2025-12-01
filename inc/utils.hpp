@@ -6,6 +6,7 @@
 #include <utility>
 #include <algorithm>
 #include <sstream>
+#include <fstream>
 #include <dirent.h>
 
 bool isDirective(const std::string& line);
@@ -23,3 +24,7 @@ std::string getFileExtension(const std::string& path);
 std::string urlDecode(const std::string &src);
 std::string sanitizeFilename(const std::string &n);
 bool endsWith(const std::string& str, const std::string& suffix);
+bool readFile(const std::string& path, std::string& out);
+std::string detectMime(const std::string& path);
+std::string ensureTrailingSlash(const std::string &s);
+std::string trimLeadingSlash(const std::string &s);
