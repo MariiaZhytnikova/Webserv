@@ -269,7 +269,7 @@ bool RequestValidator::handleRedirect(
 				res.setHeader("Content-Length", std::to_string(buffer.size()));
 				handl.sendResponse(res);
 
-				Logger::log(INFO, "Browser → served custom 301 HTML");
+				Logger::log(WARNING, "Custom 301 HTML for browser requests");
 				return false;
 			}
 		}

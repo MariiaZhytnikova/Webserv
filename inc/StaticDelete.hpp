@@ -7,4 +7,9 @@
 #include "Location.hpp"
 #include <optional>
 
-std::optional<HttpResponse> serveDeleteStatic(const HttpRequest& req, const Server& srv, const Location& loc, RequestHandler& handler);
+std::optional<HttpResponse> serveDeleteStatic(
+	const HttpRequest& req,
+	const Server& srv,
+	const Location& loc,
+	RequestHandler& handler
+	);

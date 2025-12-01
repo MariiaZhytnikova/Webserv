@@ -29,7 +29,7 @@ private:
 	std::unordered_map<int, ClientState>	_clientState;
 	std::vector<int>						_toClose;
 
-	void setupSockets();				// create/bind/listen
+	void setupSockets();
 	void acceptNewClient(int listenFd);
 	void readFromClient(int clientFd);
 
@@ -45,11 +45,12 @@ public:
 	ServerManager& operator=(const ServerManager& other) = delete;
 	~ServerManager();
 
-	const std::vector<Server>& getServers() const;
-	const Server&	getServer(size_t index) const;
-	Server&			getServer(size_t index);
-	SessionManager& getSessionManager();
-	void cleanupClient(int clientFd);
+	// -------------------- Getters --------------------
+	const std::vector<Server>&	getServers() const;
+	const Server&				getServer(size_t index) const;
+	Server&						getServer(size_t index);
+	SessionManager& 			getSessionManager();
 
 	void run();
+	void cleanupClient(int clientFd);
 };

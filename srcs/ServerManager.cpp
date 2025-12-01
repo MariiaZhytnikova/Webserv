@@ -59,12 +59,10 @@ void ServerManager::setupSockets() {
 			}
 		}
 
-		if (portUsed) {
-			continue;
-		}
+		if (portUsed) continue;
 
-		Logger::log(DEBUG,
-			"Creating NEW socket for port " + std::to_string(port));
+		// Logger::log(DEBUG,
+		// 	"New socket created for port " + std::to_string(port));
 
 		// Address family: IPv4 (AF_INET)
 		// SOCK_STREAM: TCP (reliable, connection-oriented)
@@ -160,11 +158,10 @@ void ServerManager::acceptNewClient(int listenFd) {
 	_clientState[clientFd] = {0, time(NULL)};
 	char clientIP[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, INET_ADDRSTRLEN);
-	int clientPort = ntohs(clientAddr.sin_port);
 
 	Logger::log(INFO, "accepted connection from " +
-						std::string(clientIP) + ":" +
-						std::to_string(clientPort));
+						std::string(clientIP) + ", client fd: " +
+						std::to_string(clientFd));
 	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) == -1) {
 		Logger::log(ERROR, "failed to set client socket non-blocking: " + std::string(strerror(errno)));
 		close(clientFd);
@@ -186,26 +183,17 @@ void ServerManager::readFromClient(int clientFd) {
 	if (!readSocketIntoBuffer(clientFd, buf))
 		return;
 
-	// ✅ NEW: Find where headers end
-		// Check if header is too large (only check before we find the end of headers)
+	// Check if header is too large (find the end of headers)
 	size_t headerEnd = buf.find("\r\n\r\n");
 	if (headerEnd == std::string::npos)
 		headerEnd = buf.find("\n\n");
 
-	// ✅ NEW: Only reject if HEADERS are too big
-	// If we haven't found the end of headers yet and buffer is too large
-	Logger::log(ERROR, "MAX HEADER SIZE" + std::to_string(MAX_HEADER_SIZE));
+	// Reject if HEADERS are too big
+	// or we haven't found the end of headers yet and buffer is too large
 	if (headerEnd == std::string::npos && buf.size() > MAX_HEADER_SIZE) {
 		_toClose.push_back(clientFd);
 		return;
 	}
-	// The server was rejecting legitimate file uploads because it thought the HEADERS were too big,
-	//  when actually it was counting the FILE DATA too!
-	// old -This code rejects the entire request if the buffer is larger than 8KB
-	// 	if (buf.size() > MAX_HEADER_SIZE) {
-	// 	_toClose.push_back(clientFd);
-	// 	return;
-	// }
 
 	// Process all complete requests (pipelining)
 	size_t reqEnd;
@@ -213,7 +201,7 @@ void ServerManager::readFromClient(int clientFd) {
 
 		std::string raw = extractNextRequest(buf, reqEnd);
 
-		Logger::log(DEBUG, "full request received fd=" + std::to_string(clientFd));
+		// Logger::log(DEBUG, "full request received fd=" + std::to_string(clientFd));
 
 		_clientState[clientFd].requestCount++;
 		_clientState[clientFd].lastActivity = time(NULL);
@@ -294,7 +282,7 @@ bool ServerManager::readSocketIntoBuffer(int clientFd, std::string &buf) {
 	}
 
 	if (bytes == 0) {
-		Logger::log(INFO, "client disconnected");
+		Logger::log(INFO, "client disconnected, fd: " + std::to_string(clientFd));
 		_toClose.push_back(clientFd);
 		return false;
 	}
@@ -355,6 +343,5 @@ void ServerManager::cleanupClient(int clientFd) {
 			break;
 		}
 	}
-
-	Logger::log(DEBUG, "cleaned up client fd=" + std::to_string(clientFd));
+	// Logger::log(DEBUG, "cleaned up client fd=" + std::to_string(clientFd));
 }

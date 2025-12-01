@@ -8,7 +8,12 @@
 
 CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
-HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::string& interpreterPath, const std::string& serverRoot){
+HttpResponse CgiHandler::execute(
+	const std::string& scriptPath,
+	const std::string& interpreterPath,
+	const std::string& serverRoot
+	) {
+
 	std::map<std::string, std::string> env;
 
 	if (access(scriptPath.c_str(), F_OK) != 0) {
@@ -38,7 +43,10 @@ HttpResponse CgiHandler::execute(const std::string& scriptPath, const std::strin
 	return res;
 }
 
-std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scriptPath, const std::string& serverRoot) const {
+std::map<std::string, std::string> CgiHandler::buildEnv(
+	const std::string& scriptPath,
+	const std::string& serverRoot
+	) const {
 
 	std::map<std::string, std::string> env;
 	std::string fullPath = _request.getPath();
@@ -55,18 +63,20 @@ std::map<std::string, std::string> CgiHandler::buildEnv(const std::string& scrip
 	}
 	env["PATH_INFO"] = pathInfo;
 
-	// Logger::log(DEBUG, "Enviroment in CGI: PATH_INFO: " + pathInfo + " SCRIPT_NAME: /" + scriptName);
+	//  Logger::log(
+	// 	DEBUG,
+	// 	"Enviroment in CGI: PATH_INFO: " + pathInfo + " SCRIPT_NAME: /" + scriptName);
 
 	// Standard CGI varszz
-	env["GATEWAY_INTERFACE"] = "CGI/1.1";
-	env["SCRIPT_FILENAME"] = scriptPath;
-	env["REQUEST_METHOD"] = _request.getMethod();
-	env["QUERY_STRING"] = _request.getQueryString();
-	env["CONTENT_LENGTH"] = std::to_string(_request.getBody().size());
-	env["CONTENT_TYPE"] = _request.getHeader("Content-Type");
-	env["SERVER_PROTOCOL"] = "HTTP/1.1";
-	env["SERVER_SOFTWARE"] = "MyWebServ/1.0";
-	env["REDIRECT_STATUS"] = "200";
+	env["GATEWAY_INTERFACE"]	= "CGI/1.1";
+	env["SCRIPT_FILENAME"]		= scriptPath;
+	env["REQUEST_METHOD"]		= _request.getMethod();
+	env["QUERY_STRING"]			= _request.getQueryString();
+	env["CONTENT_LENGTH"]		= std::to_string(_request.getBody().size());
+	env["CONTENT_TYPE"]			= _request.getHeader("Content-Type");
+	env["SERVER_PROTOCOL"]		= "HTTP/1.1";
+	env["SERVER_SOFTWARE"]		= "MyWebServ/1.0";
+	env["REDIRECT_STATUS"]		= "200";
 
 	char cwd[4096];
 	getcwd(cwd, sizeof(cwd));
@@ -80,7 +90,8 @@ std::string CgiHandler::runProcess(
 	const std::string& scriptPath,
 	const std::map<std::string, std::string>& env,
 	const std::string& interpreterPath
-) {
+	) {
+
 	int inPipe[2], outPipe[2];
 	if (pipe(inPipe) < 0 || pipe(outPipe) < 0)
 		throw std::runtime_error("pipe failed");

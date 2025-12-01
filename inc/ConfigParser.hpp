@@ -44,14 +44,14 @@ class ConfigParser {
 
 		void parseServerBlock(std::ifstream& file);
 		void parseLocationBlock(std::ifstream& file, Server& server, const std::string& line);
-	
 		void parseServerDirective(const std::string& line, Server& server);
 		void parseLocationDirective(const std::string& line, Location& location);
 
-		ConfigLineType getLineType(const std::string& line);
-		LocationDirective getLocationDirective(const std::string& line);
-		ServerDirective getServerDirective(const std::string& line);
 		void setDefaultServers();
+
+		ConfigLineType		getLineType(const std::string& line);
+		LocationDirective	getLocationDirective(const std::string& line);
+		ServerDirective		getServerDirective(const std::string& line);
 
 	public:
 		ConfigParser() = delete;
@@ -61,6 +61,7 @@ class ConfigParser {
 		~ConfigParser() = default;
 
 		void parse();
-		const std::vector<Server>& getServers() const;
 
+	// -------------------- Getters --------------------
+		const std::vector<Server>& getServers() const;
 };
