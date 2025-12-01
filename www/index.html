@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Webserv — 42 Project</title>
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-		<link rel="icon" href="/favicon.ico" type="image/x-icon">
-		<meta name="theme-color" content="#0b1220">
-		<link rel="stylesheet" href="css/style.css">
-	</head>
-	<body>
-		<input type="checkbox" id="theme-toggle" hidden>
-		<label for="theme-toggle" class="theme-switch">
-			<div class="thumb"></div>
-		</label>
-		<div class="page-wrapper">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Webserv — 42 Project</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+	<link rel="icon" href="/favicon.ico" type="image/x-icon">
+	<meta name="theme-color" content="#0b1220">
+	<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+	<input type="checkbox" id="theme-toggle" hidden>
+	<label for="theme-toggle" class="theme-switch">
+		<div class="thumb"></div>
+	</label>
+	<div class="page-wrapper">
 		<div class="container">
 			<header>
 				<div class="brand">
@@ -32,27 +34,18 @@
 				<section>
 					<div class="card">
 						<h1>Welcome to Webserv</h1>
-						<p class="lead">A lightweight, C++ HTTP server implementing the mandatory and bonus parts of the 42 webserv project: virtual hosts, CGI, file uploads, custom error pages and more.</p>
+						<p class="lead">A lightweight, C++ HTTP server implementing the mandatory and bonus parts of the
+							42 webserv project: virtual hosts, CGI, file uploads, custom error pages and more.</p>
 						<div class="row">
-							<a class="btn" href="https://github.com/MariiaZhytnikova/Webserv" target="_blank" rel="noopener">View repo</a>
+							<a class="btn" href="https://github.com/MariiaZhytnikova/Webserv" target="_blank"
+								rel="noopener">View repo</a>
 						</div>
 
-						<section id="features" class="features" aria-label="features">
-							<div class="feature">
-								<h3>Directory listing</h3>
-								<div class="muted">Auto-index pages or custom listings depending on config.</div>
-							</div>
-							<div class="feature">
-								<h3>Custom errors</h3>
-								<div class="muted">Custom error pages for 404, 403, 500 etc.</div>
-							</div>
-								<a class="feature" href="/redirect-me">
-									<h3>Redirection</h3>
-									<div class="muted">Configure 301/302 redirects per location.</div>
-								</a>
-				
-						</section>
+						<div class="banner">
+							<img class="banner-img" src="images/image_hive.jpg" alt="Banner Image">
 
+							<img class="spinner" src="images/sticker-H.png" alt="Sticker">
+						</div>
 						<section style="margin-top:18px">
 							<h3 style="margin-bottom:6px">Quick test commands</h3>
 							<pre><code>curl -i http://localhost:8080/
@@ -64,7 +57,8 @@ printf "METHOD / HTTP/1.1\r\n Header1:value \r\n Header2:value \r\n\r\n body" | 
 printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080
 printf "KILL / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\nConnection: close\r\n\r\nhello=123" | nc localhost 8080
 siege -b http://localhost:8080/pages/ok.html</code></pre>
-							<div class="muted" style="margin-top:8px">Replace port/path as configured in your `default.conf`</div>
+							<div class="muted" style="margin-top:8px">Replace port/path as configured in your
+								`default.conf`</div>
 						</section>
 					</div>
 				</section>
@@ -79,23 +73,23 @@ siege -b http://localhost:8080/pages/ok.html</code></pre>
 							<a class="btn" href="/pages/delete.html">DELETE</a>
 							<a class="btn" href="/cgi-bin/test.py">CGI: test.py</a>
 							<a class="btn" href="/cgi-bin/test.php">CGI: test.php</a>
-							<!-- <a class="btn" href="/list/">Directory listing</a> -->
 							<a class="btn" href="/redirect-me">Redirect (301)</a>
+							<a class="btn" href="/pictures">Directory Listing</a>
 						</div>
 
 						<div style="margin-top:16px">
 							<h4 style="margin:0 0 8px 0">Team</h4>
 							<div class="team">
 								<a class="member" href="https://github.com/MariiaZhytnikova" target="_blank">
-									<strong>Mariia Z. <span class="arrow">  ↗</span></strong>
+									<strong>Mariia Z. <span class="arrow"> ↗</span></strong>
 								</a>
-						
+
 								<a class="member" href="https://github.com/janeyears" target="_blank">
-									<strong>Evgeniia K. <span class="arrow">  ↗</span></strong>
+									<strong>Evgeniia K. <span class="arrow"> ↗</span></strong>
 								</a>
-						
+
 								<a class="member" href="https://github.com/marinezh" target="_blank">
-									<strong>Marina Z.<span class="arrow">  ↗</span></strong>
+									<strong>Marina Z.<span class="arrow"> ↗</span></strong>
 								</a>
 							</div>
 						</div>
@@ -110,40 +104,36 @@ siege -b http://localhost:8080/pages/ok.html</code></pre>
 				<a class="inline-link" href="https://github.com/marinezh" target="_blank">Marina</a>
 			</footer>
 		</div>
-		</div>
-		<script>
-			const toggle = document.getElementById("theme-toggle");
-			
-			// --- Read cookies ---
-			const cookies = {};
-			document.cookie.split(";").forEach(pair => {
-				const [k, v] = pair.trim().split("=");
-				if (k && v) cookies[k] = v;
-			});
-			
-			// --- Apply theme from cookie ---
-			if (cookies.theme === "dark") {
-				toggle.checked = true;
-				document.body.classList.remove("light");
-			} else {
-				toggle.checked = false;
+	</div>
+	<script>
+		const toggle = document.getElementById("theme-toggle");
+
+		const cookies = {};
+		document.cookie.split(";").forEach(pair => {
+			const [k, v] = pair.trim().split("=");
+			if (k && v) cookies[k] = v;
+		});
+
+		if (cookies.theme === "dark") {
+			toggle.checked = true;
+			document.body.classList.remove("light");
+		} else {
+			toggle.checked = false;
+			document.body.classList.add("light");
+		}
+
+		toggle.addEventListener("change", () => {
+			const mode = toggle.checked ? "dark" : "light";
+
+			document.cookie = `theme=${mode}; Path=/; Max-Age=31536000`;
+
+			if (mode === "light") {
 				document.body.classList.add("light");
+			} else {
+				document.body.classList.remove("light");
 			}
-			
-			// --- Change theme ---
-			toggle.addEventListener("change", () => {
-				const mode = toggle.checked ? "dark" : "light";
-			
-				// Save cookie (expires in ~1 year)
-				document.cookie = `theme=${mode}; Path=/; Max-Age=31536000`;
-			
-				// Apply theme instantly
-				if (mode === "light") {
-					document.body.classList.add("light");
-				} else {
-					document.body.classList.remove("light");
-				}
-			});
-			</script>
-	</body>
+		});
+	</script>
+</body>
+
 </html>
