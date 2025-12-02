@@ -12,11 +12,11 @@ with open(layout_path) as f:
     html = f.read()
 
 messages = [
-    "Everything worked perfectly! 🎉",
-    "CGI is alive and running! 🚀",
-    "You executed a Python script through your server. Nice! 🧠",
-    "Backend magic happening right here ✨",
-    "CGI? More like Cool Great Interface! 😎"
+	"Everything worked perfectly! 🎉",
+	"CGI is alive and running! 🚀",
+	"You executed a Python script through your server. Nice! 🧠",
+	"Backend magic happening right here ✨",
+	"CGI? More like Cool Great Interface! 😎"
 ]
 html = html.replace("{{title}}", "CGI Success")
 html = html.replace("{{icon}}", "🐍")

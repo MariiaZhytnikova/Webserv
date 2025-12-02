@@ -12,37 +12,54 @@ HttpResponse CgiHandler::execute(
 	const std::string& scriptPath,
 	const std::string& interpreterPath,
 	const std::string& serverRoot
-	) {
-
-	std::map<std::string, std::string> env;
-
+) {
 	if (access(scriptPath.c_str(), F_OK) != 0) {
 		throw std::runtime_error("CGI script does not exist");
 	}
-	env = buildEnv(scriptPath, serverRoot);
-	std::string output = runProcess(scriptPath, env, interpreterPath);
 
-	// Parse CGI output: split headers from body
+	std::map<std::string, std::string> env = buildEnv(scriptPath, serverRoot);
+
+	// Run the script and capture stdout, stderr, and exit code
+	std::string output, errorOutput;
+	int exitCode = runProcess(scriptPath, env, interpreterPath, output, errorOutput);
+
+	if (exitCode != 0) {
+		throw std::runtime_error("CGI script execution failed");
+	}
+
 	size_t headerSize = output.find("\r\n\r\n");
 	if (headerSize == std::string::npos)
 		headerSize = output.find("\n\n");
+
+	if (headerSize == std::string::npos) {
+		throw std::runtime_error("Invalid CGI output");
+	}
+
 	std::string headers = output.substr(0, headerSize);
 	std::string body = output.substr(headerSize + ((output[headerSize] == '\r') ? 4 : 2));
 
 	HttpResponse res(200, body);
+
 	std::istringstream hs(headers);
 	std::string line;
+	bool hasContentType = false;
 	while (std::getline(hs, line) && !line.empty()) {
 		size_t sep = line.find(':');
 		if (sep != std::string::npos) {
 			std::string key = line.substr(0, sep);
 			std::string val = line.substr(sep + 1);
 			res.setHeader(key, val);
+			if (key == "Content-Type")
+				hasContentType = true;
 		}
 	}
+
+	if (!hasContentType) {
+		throw std::runtime_error("Invalid CGI output");
+	}
+
 	return res;
 }
-
 std::map<std::string, std::string> CgiHandler::buildEnv(
 	const std::string& scriptPath,
 	const std::string& serverRoot
@@ -86,14 +103,15 @@ std::map<std::string, std::string> CgiHandler::buildEnv(
 	return env;
 }
 
-std::string CgiHandler::runProcess(
+int CgiHandler::runProcess(
 	const std::string& scriptPath,
 	const std::map<std::string, std::string>& env,
-	const std::string& interpreterPath
-	) {
-
-	int inPipe[2], outPipe[2];
-	if (pipe(inPipe) < 0 || pipe(outPipe) < 0)
+	const std::string& interpreterPath,
+	std::string& stdoutStr,
+	std::string& stderrStr
+) {
+	int inPipe[2], outPipe[2], errPipe[2];
+	if (pipe(inPipe) < 0 || pipe(outPipe) < 0 || pipe(errPipe) < 0)
 		throw std::runtime_error("pipe failed");
 
 	pid_t pid = fork();
@@ -104,43 +122,58 @@ std::string CgiHandler::runProcess(
 		// Child
 		dup2(inPipe[0], STDIN_FILENO);
 		dup2(outPipe[1], STDOUT_FILENO);
+		dup2(errPipe[1], STDERR_FILENO);
+
 		close(inPipe[1]);
 		close(outPipe[0]);
+		close(errPipe[0]);
 
 		std::vector<std::string> envStrings;
 		std::vector<char*> envp;
-		for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it) {
+		for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it)
 			envStrings.push_back(it->first + "=" + it->second);
-		}
 		for (size_t i = 0; i < envStrings.size(); ++i)
 			envp.push_back(const_cast<char*>(envStrings[i].c_str()));
-		envp.push_back(NULL);
+		envp.push_back(nullptr);
+
 		char* args[] = {
 			const_cast<char*>(interpreterPath.c_str()),
 			const_cast<char*>(scriptPath.c_str()),
-			NULL
+			nullptr
 		};
 		execve(interpreterPath.c_str(), args, envp.data());
 		perror("execve failed");
-		_exit(1);
+		_exit(127);
 	}
 
 	// Parent
 	close(inPipe[0]);
 	close(outPipe[1]);
+	close(errPipe[1]);
 
 	if (_request.getMethod() == "POST")
 		write(inPipe[1], _request.getBody().c_str(), _request.getBody().size());
 	close(inPipe[1]);
 
-	std::ostringstream output;
+	// Read stdout
+	stdoutStr.clear();
 	char buffer[1024];
 	ssize_t bytes;
 	while ((bytes = read(outPipe[0], buffer, sizeof(buffer))) > 0)
-		output.write(buffer, bytes);
-
+		stdoutStr.append(buffer, bytes);
 	close(outPipe[0]);
-	waitpid(pid, NULL, 0);
 
-	return output.str();
+	// Read stderr
+	stderrStr.clear();
+	while ((bytes = read(errPipe[0], buffer, sizeof(buffer))) > 0)
+		stderrStr.append(buffer, bytes);
+	close(errPipe[0]);
+
+	int status;
+	waitpid(pid, &status, 0);
+
+	if (WIFEXITED(status))
+		return WEXITSTATUS(status);
+	else
+		return -1;
 }
