@@ -51,8 +51,6 @@
 							<pre><code>
 Should work:
 curl -i http://localhost:8080/
-curl -i -X POST -d "hello world" http://localhost:8080/uploads/echo
-curl -v -X POST -d "hello=world" http://localhost:8080/uploads/echo 
 curl -v -X POST -d "hello world" http://localhost:8080/uploads/
 curl -v -X POST -d "filename=myfile.txt&content=hello world" http://localhost:8080/uploads/
 curl -i -X DELETE http://localhost:8080/uploads/myfile.txt
@@ -64,15 +62,12 @@ printf "KILL / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\nConnecti
 
 Siege:
 siege -b http://localhost:8080/pages/ok.html
-siege -v -r100 -c10 'http://localhost:8080/uploads/echo POST hello=world'
-curl -v -X POST -d "hello=world" http://localhost:8080/uploads/echo 
+siege -v -r100 -c10 'http://localhost:8080/uploads/echo POST hello=world' 
 touch www/uploads/tmp.txt
 siege -v -r100 -c10 'http://localhost:8080/uploads/tmp.txt DELETE'
 
 
 							</code></pre>
-							<div class="muted" style="margin-top:8px">Replace port/path as configured in your
-								`default.conf`</div>
 						</section>
 					</div>
 				</section>
@@ -122,30 +117,35 @@ siege -v -r100 -c10 'http://localhost:8080/uploads/tmp.txt DELETE'
 	<script>
 		const toggle = document.getElementById("theme-toggle");
 
+		// --- Parse cookies ---
 		const cookies = {};
 		document.cookie.split(";").forEach(pair => {
 			const [k, v] = pair.trim().split("=");
 			if (k && v) cookies[k] = v;
 		});
 
-		if (cookies.theme === "dark") {
-			toggle.checked = true;
-			document.body.classList.remove("light");
-		} else {
-			toggle.checked = false;
-			document.body.classList.add("light");
-		}
+		// --- Theme logic ---
+		// If cookie exists → use it
+		// If no cookie → default = dark
+		let theme = cookies.theme ? cookies.theme : "dark";
 
+		// Apply theme to body
+		document.body.classList.remove("dark", "light");
+		document.body.classList.add(theme);
+
+		// Update toggle position
+		toggle.checked = theme === "light";
+
+		// --- On toggle ---
 		toggle.addEventListener("change", () => {
-			const mode = toggle.checked ? "dark" : "light";
+			theme = toggle.checked ? "light" : "dark";
 
-			document.cookie = `theme=${mode}; Path=/; Max-Age=31536000`;
+			// Save cookie for 1 year
+			document.cookie = `theme=${theme}; Path=/; Max-Age=31536000`;
 
-			if (mode === "light") {
-				document.body.classList.add("light");
-			} else {
-				document.body.classList.remove("light");
-			}
+			// Apply class
+			document.body.classList.remove("light", "dark");
+			document.body.classList.add(theme);
 		});
 	</script>
 </body>

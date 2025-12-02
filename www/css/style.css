@@ -23,6 +23,7 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	line-height: 1.45;
+	background-color: var(--body-bg);
 }
 
 .page-wrapper {
@@ -117,7 +118,7 @@ header {
 	height: 350px;
 	overflow: visible;
 	border-radius: 12px;
-	margin-top: 15px;
+	margin-top: 30px;
 }
 
 .banner-img {
@@ -126,7 +127,6 @@ header {
 	object-fit: cover;
 	border-radius: inherit;
 }
-
 
 .spinner {
 	position: absolute;
@@ -191,7 +191,7 @@ p.lead {
 	display: flex;
 	gap: 16px;
 	flex-wrap: wrap;
-	margin-top: 16px
+	margin-top: 25px
 }
 
 .muted {
@@ -352,8 +352,4 @@ a.inline-link {
 
 #theme-toggle:checked~.page-wrapper .container .member .muted {
 	color: #555;
-}
-
-.test-cmd {
-	max-width: 950px;
 }

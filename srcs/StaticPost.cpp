@@ -288,7 +288,7 @@ std::optional<HttpResponse> servePostStatic(
 	if (!out.is_open())
 		return handler.makeErrorResponse(srv, 500);
 
-	// Write raw file data (binary-safe)
+	// Write raw file data
 	out.write(fileData.c_str(), fileData.size());
 	out.close();
 	Logger::log(INFO, "POST: saved " + fullPath);
