@@ -59,6 +59,8 @@ Errors tests:
 printf "METHOD / HTTP/1.1\r\n Header1:value \r\n Header2:value \r\n\r\n body" | nc localhost 8080
 printf "POST / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080
 printf "KILL / HTTP/1.1\r\nHost: localhost:8080\r\nContent-Length: 9\r\nConnection: close\r\n\r\nhello=123" | nc localhost 8080
+printf "POST /too_large/ HTTP/1.1\r\nHost: localhost:8080\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nAAAAA" | nc localhost 8080 ;
+printf "GET /too_large/ HTTP/1.1\r\nHost: localhost:8080\r\nConnection : close\r\nContent-Length: 9\r\n\r\nhello=123" | nc localhost 8080
 
 Siege:
 siege -b http://localhost:8080/pages/ok.html
