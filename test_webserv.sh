@@ -7,8 +7,9 @@ BASE_URL="http://localhost:8080"
 
 REDIRECT_URL="/redirect-me"
 REDIRECT_TARGET="/pages/this_is_redirect.html"
-UPLOAD_ENDPOINT="/uploads/echo"
+UPLOAD_ENDPOINT="/tester/"
 DELETE_TARGET="/uploads/delete_me.txt"
+FORBIDDEN="/forbidden/"
 TOO_LARGE="/too_large/abc"
 PYTHON_CGI="/cgi-bin/test.py"
 PHP_CGI="/cgi-bin/test.php"
@@ -39,13 +40,14 @@ print_header() {
 	echo
 	echo "========================================"
 	echo "$1"
-	echo "========================================"
+	echo "----------------------------------------"
 }
 
 # ================================
 # 1. GET / should return 200
 # ================================
 test_get_root() {
+	print_header "OK test"
 	code=$(status_code "${BASE_URL}/")
 	[ "$code" = "200" ] && pass "GET / returned 200" \
 						|| fail "GET / returned $code"
@@ -64,6 +66,7 @@ test_get_ok_page() {
 # 3. GET non-existing → 404
 # ================================
 test_get_404() {
+	print_header "404 test"
 	code=$(status_code "${BASE_URL}/no-such-page")
 	[ "$code" = "404" ] && pass "404 page returned correctly" \
 						|| fail "Expected 404, got $code"
@@ -73,6 +76,7 @@ test_get_404() {
 # 4. Redirect test
 # ================================
 test_redirect() {
+	print_header "Redirect test"
 	code=$(status_code "${BASE_URL}${REDIRECT_URL}")
 	if [ "$code" = "301" ]; then
 		pass "Redirect returned 301"
@@ -93,6 +97,7 @@ test_redirect() {
 # 5. POST upload → /uploads/echo
 # ================================
 test_post_upload() {
+	print_header "Upload test"
 	code=$(curl -s -o /dev/null -w "%{http_code}" \
 		-X POST -d "hello=world" "${BASE_URL}${UPLOAD_ENDPOINT}")
 
@@ -105,6 +110,7 @@ test_post_upload() {
 # 6. POST too large
 # ================================
 test_post_too_big() {
+	print_header "Too large test"
 	big="$(head -c 500 </dev/zero | tr '\0' 'A')"
 
 	code=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -118,6 +124,7 @@ test_post_too_big() {
 # 7. DELETE file
 # ================================
 test_delete() {
+	print_header "Delete test"
 	echo "to delete" > "./www${DELETE_TARGET}"
 
 	code=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -138,12 +145,13 @@ test_delete() {
 # 8. Autoindex test
 # ================================
 test_autoindex() {
-	body=$(body_of "${BASE_URL}/uploads/")
+	print_header "Autoindex test"
+	body=$(body_of "${BASE_URL}/pictures/")
 
 	if echo "$body" | grep -q "<a href"; then
-		pass "Autoindex on /uploads/ works"
+		pass "Autoindex on /pictures/ works"
 	else
-		fail "Autoindex /uploads/ missing listing"
+		fail "Autoindex /pictures/ missing listing"
 	fi
 }
 
@@ -151,9 +159,8 @@ test_autoindex() {
 # 9. Method not allowed (405)
 # ================================
 test_method_not_allowed() {
-	print_header "405 Method Not Allowed"
-
-	for method in GET POST PUT; do
+	print_header "Method not allowed test"
+	for method in GET POST; do
 		code=$(curl -s -o /dev/null -w "%{http_code}" \
 			-X "$method" "${BASE_URL}/forbidden/")
 
@@ -169,6 +176,7 @@ test_method_not_allowed() {
 # 10. Unknown method (501)
 # ================================
 test_unknown_method() {
+	print_header "Unknown method test"
 	code=$(printf "BREW / HTTP/1.1\r\nHost: localhost\r\n\r\n" \
 			| nc localhost 8080 | head -1 | awk '{print $2}')
 
@@ -183,6 +191,7 @@ test_unknown_method() {
 # 11. CGI Python
 # ================================
 test_python_cgi() {
+	print_header "Python test"
 	code=$(status_code "${BASE_URL}${PYTHON_CGI}")
 	[ "$code" = "200" ] && pass "Python CGI returned 200" \
 						|| fail "Python CGI returned $code"
@@ -192,6 +201,7 @@ test_python_cgi() {
 # 12. CGI PHP
 # ================================
 test_php_cgi() {
+	print_header "PHP test"
 	code=$(status_code "${BASE_URL}${PHP_CGI}")
 	[ "$code" = "200" ] && pass "PHP CGI returned 200" \
 						|| fail "PHP CGI returned $code"
@@ -201,9 +211,7 @@ test_php_cgi() {
 # 13. Keep-alive
 # ================================
 test_keepalive() {
-	print_header "KEEP-ALIVE TEST"
-
-	echo "Sending two sequential requests using one curl session..."
+	print_header "Keep-alive test"
 
 	output=$(curl -v \
 		-H "Connection: keep-alive" \
