@@ -1,13 +1,16 @@
 #include "Location.hpp"
+#include <limits>
 
 Location::Location()
 	: _path("/"),
+	_clientMaxBodySize(std::numeric_limits<size_t>::max()),
 	_redirect(""),
 	_root(""),
 	_index("index.html"),
 	_autoindex(false),
 	_uploadPath(""),
 	_hasReturn(false),
+	_hasMaxSize(false),
 	_returnCode(0),
 	_returnTarget("")
 {
@@ -47,6 +50,10 @@ void Location::setReturn(int code, const std::string& target) {
 	_returnTarget = target;
 }
 
+void Location::setMaxSize() { _hasMaxSize = true; }
+
 bool Location::hasReturn() const { return _hasReturn; }
+bool Location::hasMaxSize() const { return _hasMaxSize; }
 int Location::getReturnCode() const { return _returnCode; }
+size_t	Location::getClientMaxBodySize() const { return _clientMaxBodySize; }
 const std::string& Location::getReturnTarget() const { return _returnTarget; }

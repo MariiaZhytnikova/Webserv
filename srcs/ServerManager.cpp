@@ -49,7 +49,7 @@ void ServerManager::setupSockets() {
 		{
 			if (it->second == port) {
 				portUsed = true;
-				Logger::log(DEBUG,
+				Logger::log(TRACE,
 					"Skipping creating socket for port " + std::to_string(port) +
 					" (already bound on fd=" + std::to_string(it->first) + ")");
 				break;

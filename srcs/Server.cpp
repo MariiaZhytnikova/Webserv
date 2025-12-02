@@ -1,11 +1,12 @@
 #include "Server.hpp"
 #include <regex>
+#include <limits>
 #include "Logger.hpp"
 
 Server::Server()
 	: _host("127.0.0.1"),
 	  _port(80),
-	  _clientMaxBodySize(0),
+	  _clientMaxBodySize(std::numeric_limits<size_t>::max()),
 	  _root(""),
 	  _index("index.html"),
 	  _isDefault(false),
