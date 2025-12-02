@@ -18,6 +18,7 @@ private:
 	std::string							_cgiProgram;
 
 	bool								_hasReturn;
+	bool								_hasMaxSize;
 	int									_returnCode;
 	std::string							_returnTarget;
 
@@ -33,13 +34,15 @@ public:
 	const std::string& getRedirect() const;
 	const std::string& getRoot() const;
 	const std::string& getIndex() const;
-	bool  getAutoindex() const;
 	const std::map<std::string, std::string>& getCgiExtensions() const;
 	const std::string& getUploadPath() const;
 	const std::string& getCgiProgram() const;
-	bool  hasReturn() const;
-	int   getReturnCode() const;
 	const std::string& getReturnTarget() const;
+	bool	getAutoindex() const;
+	bool	hasReturn() const;
+	bool	hasMaxSize() const;
+	int		getReturnCode() const;
+	size_t	getClientMaxBodySize() const;
 
 	// -------------------- Setters --------------------
 	void setPath(const std::string& p);
@@ -53,5 +56,5 @@ public:
 	void setUploadPath(const std::string& path);
 	void setCgiProgram(const std::string& p);
 	void setReturn(int code, const std::string& target);
-
+	void setMaxSize();
 };

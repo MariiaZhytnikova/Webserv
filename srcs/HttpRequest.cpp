@@ -90,7 +90,7 @@ void HttpRequest::parseHeaders(std::istringstream& stream) {
 	}
 
 	// for (auto &pairs : _headers)
-	// 	Logger::log(
+		// Logger::log(
 		// TRACE,
 		// std::string("from parseHeaders: ") + pairs.first + " : " + pairs.second);
 	
