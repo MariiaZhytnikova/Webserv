@@ -353,3 +353,7 @@ a.inline-link {
 #theme-toggle:checked~.page-wrapper .container .member .muted {
 	color: #555;
 }
+
+.test-cmd {
+	max-width: 950px;
+}

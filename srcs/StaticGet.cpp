@@ -12,19 +12,6 @@
 #include <cstring>
 #include <sys/types.h>
 
-std::string resolveRoot(const Server& srv, const Location& loc){
-	//choose location root if defined; else server root
-	std::string root = loc.getRoot().empty()? srv.getRoot() : loc.getRoot();
-	//remove trailing slashes
-	while(!root.empty() && root.back() == '/')
-		root.pop_back();
-
-	//fallback
-	if (root.empty())
-		root = "./www";
-	return root;
-}
-
 std::optional<HttpResponse> handleDirectoryRequest(
 	const HttpRequest& req,
 	const Server& srv,
