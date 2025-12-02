@@ -9,6 +9,10 @@
 #include <fstream>
 #include <dirent.h>
 
+// Forward declarations
+class Server;
+class Location;
+
 bool isDirective(const std::string& line);
 std::string trim(const std::string &s);
 std::string trimLine(const std::string& raw);
@@ -28,3 +32,4 @@ bool readFile(const std::string& path, std::string& out);
 std::string detectMime(const std::string& path);
 std::string ensureTrailingSlash(const std::string &s);
 std::string trimLeadingSlash(const std::string &s);
+std::string resolveRoot(const Server& srv, const Location& loc);

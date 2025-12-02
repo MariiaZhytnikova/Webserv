@@ -1,4 +1,6 @@
 #include "utils.hpp"
+#include "Server.hpp"
+#include "Location.hpp"
 
 bool isDirective(const std::string& line) {
 	// If line ends with ';' → it's a directive
@@ -30,10 +32,6 @@ std::string trimLine(const std::string& raw) {
 
 	return line;
 }
-
-// =====================
-// Location Helpers
-// =====================
 
 std::string extractPath(const std::string& line) {
 	size_t start = line.find(' ') + 1;
@@ -297,4 +295,19 @@ std::string trimLeadingSlash(const std::string &s) {
 	//
 	// We return the substring starting from index to the end.
 	return s.substr(index);
+}
+
+std::string resolveRoot(const Server& srv, const Location& loc) {
+	// Choose location root if defined; else server root
+	std::string root = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
+	
+	// Remove trailing slashes
+	while (!root.empty() && root.back() == '/')
+		root.pop_back();
+	
+	// Fallback
+	if (root.empty())
+		root = "./www";
+	
+	return root;
 }
