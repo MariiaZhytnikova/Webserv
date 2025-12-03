@@ -2,11 +2,6 @@
 
 <div align="center">
 
-![C++](https://img.shields.io/badge/C++-98-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
-![HTTP](https://img.shields.io/badge/HTTP-1.1-009688?style=for-the-badge)
-![42](https://img.shields.io/badge/42-Project-000000?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Completed-success?style=for-the-badge)
-
 **A lightweight, high-performance HTTP/1.1 server built from scratch in C++98**
 
 [Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Configuration](#-configuration) • [Testing](#-testing) • [Documentation](#-documentation)
@@ -299,17 +294,14 @@ server {
 curl http://localhost:8080/
 
 # Get specific file
-curl http://localhost:8080/pages/about.html
+curl http://localhost:8080/pictures/mura_1.jpeg
 
 # Get directory listing (if autoindex is on)
-curl http://localhost:8080/images/
+curl http://localhost:8080/pictures/
 
 # Execute CGI script
-curl http://localhost:8080/cgi-bin/info.py
+curl http://localhost:8080/cgi-bin/test.py
 ```
-
-**See**: [StaticGet.cpp](srcs/StaticGet.cpp)
-
 ---
 
 ### POST - Upload Files & Submit Forms
@@ -341,8 +333,6 @@ curl --data-binary @archive.zip http://localhost:8080/uploads/
 5. ✅ Write file to disk
 6. ✅ Return success response
 
-**See**: [StaticPost.cpp](srcs/StaticPost.cpp) | [POST_METHOD_SCHEMA.md](POST_METHOD_SCHEMA.md)
-
 ---
 
 ### DELETE - Remove Resources
@@ -352,14 +342,10 @@ curl --data-binary @archive.zip http://localhost:8080/uploads/
 **Examples**:
 ```bash
 # Delete a file
+touch www/uploads/tmp.txt
 curl -X DELETE http://localhost:8080/uploads/oldfile.txt
 
-# Delete with verbose output
-curl -v -X DELETE http://localhost:8080/uploads/temporary.dat
 ```
-
-**See**: [StaticDelete.cpp](srcs/StaticDelete.cpp)
-
 ---
 
 ## 🧪 Testing
@@ -375,19 +361,6 @@ printf "GET / HTTP/1.1\r\nHost: localhost:8080\r\n\r\n" | nc localhost 8080
 
 # Test POST with proper headers
 printf "POST /uploads/ HTTP/1.1\r\nHost: localhost:8080\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: 35\r\n\r\nfilename=test.txt&content=hello123" | nc localhost 8080
-```
-
-### Load Testing
-
-```bash
-# Stress test with siege
-siege -b http://localhost:8080/
-
-# Concurrent POST requests
-siege -v -r100 -c10 'http://localhost:8080/uploads/ POST filename=test&content=data'
-
-# Benchmark specific endpoint
-siege -r1000 -c50 http://localhost:8080/pages/index.html
 ```
 
 ### Browser Testing
@@ -434,7 +407,6 @@ error_page 500 /errors/500.html;
 
 ### Additional Documentation
 
-- **[POST Method Schema](POST_METHOD_SCHEMA.md)** - Detailed flow diagram of POST request handling
 - **[HTTP/1.1 Specification (RFC 7230)](https://tools.ietf.org/html/rfc7230)** - Official HTTP protocol
 - **[CGI Specification (RFC 3875)](https://tools.ietf.org/html/rfc3875)** - Common Gateway Interface
 
@@ -460,9 +432,8 @@ Webserv/
 │   └── error.log           # Error log
 ├── Makefile                # Build configuration
 ├── README.md               # This file
-└── POST_METHOD_SCHEMA.md   # POST method documentation
-```
 
+```
 ---
 
 ## 📖 Resources
@@ -483,21 +454,8 @@ Webserv/
 ✅ **Security**: Path traversal prevention, input validation  
 ✅ **Configuration Parsing**: Complex config file parsing  
 ✅ **CGI Integration**: Process management and pipe communication  
-✅ **C++98**: Modern design patterns in legacy standard  
 
----
 
-## 👥 Team
-
-<div align="center">
-
-| Developer | GitHub | Role |
-|-----------|--------|------|
-| **Mariia Zhytnikova** | [@MariiaZhytnikova](https://github.com/MariiaZhytnikova) | Core Architecture |
-| **Evgeniia Kalmikova** | [@janeyears](https://github.com/janeyears) | HTTP Parsing & CGI |
-| **Marina Zhytnikova** | [@marinezh](https://github.com/marinezh) | Request Handlers |
-
-</div>
 
 ---
 
@@ -514,14 +472,6 @@ This project is part of the 42 school curriculum. Free to use for educational pu
 - **Open source community** for networking resources and guides
 
 ---
-
-<div align="center">
-
-**Made with ♥ by the Webserv Team**
-
-⭐ Star this repo if you found it helpful!
-
-</div>
 
 ### Functionality:
 1️⃣ Server & Socket Setup
@@ -617,5 +567,11 @@ Directory:
 | **502** | Bad Gateway                | If CGI crashes or returns invalid output |
 | **505** | HTTP Version Not Supported | For unsupported HTTP version             |
 
+<div align="center">
 
+**Made with ♥ by the Webserv Team**
+
+⭐ Star this repo if you found it helpful!
+
+</div>
 
