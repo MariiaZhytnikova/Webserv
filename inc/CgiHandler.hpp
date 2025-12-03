@@ -26,10 +26,11 @@ class CgiHandler {
 			const std::string& scriptPath,
 			const std::string& serverRoot
 			) const;
-		std::string runProcess(
+		int runProcess(
 			const std::string& scriptPath,
 			const std::map<std::string, std::string>& env,
-			const std::string& interpreterPath
+			const std::string& interpreterPath,
+			std::string& stdoutStr,
+			std::string& stderrStr
 		);
-
 };

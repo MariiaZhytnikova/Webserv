@@ -34,11 +34,11 @@ std::optional<HttpResponse> serveDeleteStatic(
 
 	// 🔹 3. Check prefix and strip it
 	if (uri.find(locPath) != 0) {
-		Logger::log(DEBUG, "PREFIX NOT MATCH");
+		// Logger::log(DEBUG, "PREFIX NOT MATCH");
 		return std::nullopt;
 	}
 	uri.erase(0, locPath.size());      // "logo (1).png"
-	Logger::log(DEBUG, "AFTER PREFIX REMOVE = " + uri);
+	// Logger::log(DEBUG, "AFTER PREFIX REMOVE = " + uri);
 
 	// 🔹 4 Build filesystem path
 	std::string baseRoot = loc.getRoot().empty() ? srv.getRoot() : loc.getRoot();
@@ -47,7 +47,7 @@ std::optional<HttpResponse> serveDeleteStatic(
 	while (!baseRoot.empty() && baseRoot.back() == '/')
 		baseRoot.pop_back();
 	std::string fullPath = baseRoot + locPath + uri;
-	Logger::log(DEBUG, "FULLPATH = " + fullPath);
+	// Logger::log(DEBUG, "FULLPATH = " + fullPath);
 
 	// 🔹 5. Make sure file exists
 	struct stat st;

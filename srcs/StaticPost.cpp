@@ -11,7 +11,6 @@
 #include <string>
 #include <cstring>
 #include <sys/types.h>
-#include <errno.h>
 
 std::optional<HttpResponse> servePostStatic(
 	const HttpRequest& req,
@@ -101,15 +100,12 @@ std::optional<HttpResponse> servePostStatic(
 
 			// Search through headers for the filename
 			while (std::getline(hl, hline)) {
-
 				// Remove carriage return (Windows line ending)
 				if (!hline.empty() && hline.back() == '\r')
 					hline.pop_back();
-
 				// Convert to lowercase for case-insensitive search
 				std::string low = hline;
 				std::transform(low.begin(), low.end(), low.begin(), ::tolower);
-
 				// Look for "filename=" in headers
 				// Example: Content-Disposition: form-data; name="file"; filename="photo.jpg"
 				size_t fpos = low.find("filename=");
@@ -136,7 +132,6 @@ std::optional<HttpResponse> servePostStatic(
 					}
 				}
 			}
-
 			// Extract the actual file data
 			size_t contentStart = hdrEnd + 4;  // Skip past "\r\n\r\n"
 			
@@ -152,7 +147,6 @@ std::optional<HttpResponse> servePostStatic(
 					return handler.makeErrorResponse(srv, 400);
 				}
 			}
-
 			// Extract file content between start and boundary
 			fileData = body.substr(contentStart, nextBoundary - contentStart);
 
@@ -210,7 +204,6 @@ std::optional<HttpResponse> servePostStatic(
 		fileName = "raw_" + std::to_string(time(NULL)) + ".bin";
 		fileData = body;
 	}
-
 	// ==========================================
 	// STEP 3: Sanitize and validate filename
 	// ==========================================
@@ -251,13 +244,12 @@ std::optional<HttpResponse> servePostStatic(
 		}
 		// else: fullPath already contains a filename with extension, use as-is
 	}
-
 	// ==========================================
 	// STEP 5: Create directory structure if needed
 	// ==========================================
 	// Recursively create all parent directories
 	// Example: "./www/uploads/2024/images/" → creates each level
-	
+
 	size_t slash = fullPath.find_last_of('/');
 	std::string dirPath = fullPath.substr(0, slash);  // Get directory portion
 
@@ -274,16 +266,20 @@ std::optional<HttpResponse> servePostStatic(
 			std::string part = dirPath.substr(0, next);
 			if (stat(part.c_str(), &st) != 0) {
 				// Directory doesn't exist, create it
-				if (mkdir(part.c_str(), 0755) != 0 && errno != EEXIST) {
-					Logger::log(ERROR, "Failed to create directory: " + part);
-					return handler.makeErrorResponse(srv, 500);
+				// mkdir returns 0 on success, -1 on error
+				// We check if directory exists after mkdir to handle race conditions
+				if (mkdir(part.c_str(), 0755) != 0) {
+					// Double-check: maybe another thread/process created it
+					if (stat(part.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) {
+						Logger::log(ERROR, "Failed to create directory: " + part);
+						return handler.makeErrorResponse(srv, 500);
+					}
 				}
 			}
 			if (next == std::string::npos) break;
 			p = next + 1;
 		}
 	}
-
 	// ==========================================
 	// STEP 6: Write file to disk
 	// ==========================================
@@ -292,7 +288,7 @@ std::optional<HttpResponse> servePostStatic(
 	if (!out.is_open())
 		return handler.makeErrorResponse(srv, 500);
 
-	// Write raw file data (binary-safe)
+	// Write raw file data
 	out.write(fileData.c_str(), fileData.size());
 	out.close();
 	Logger::log(INFO, "POST: saved " + fullPath);
@@ -302,10 +298,10 @@ std::optional<HttpResponse> servePostStatic(
 	// ==========================================
 	// Send 200 OK with template variables for success page
 	return handler.makeSuccessResponse(
-	srv,
-	{
-		{"filename", fullPath},
-		{"size", std::to_string(fileData.size())}
-	}
-);
+		srv,
+		{
+			{"filename", fullPath},
+			{"size", std::to_string(fileData.size())}
+		}
+	);
 }

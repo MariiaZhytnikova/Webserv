@@ -150,6 +150,7 @@ void ConfigParser::parseLocationDirective(const std::string& line, Location& loc
 			loc.setMethods(parseMethods(line));
 			break;
 		case CLIENT_MAX_BODY_SIZE_LOC:
+			loc.setMaxSize();
 			loc.setClientMaxBodySize(parseSize(parseValue(line)));
 			break;
 		case ROOT:

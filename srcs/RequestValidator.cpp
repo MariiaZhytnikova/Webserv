@@ -73,10 +73,19 @@ bool RequestValidator::check(RequestHandler& handl, Server& srv, Location& loc) 
 	}
 
 	// 🔹 Body size check
-	if (handl.getRequest().getBody().size() > srv.getClientMaxBodySize()) {
-		handl.sendResponse(handl.makeErrorResponse(srv, 413));
-		Logger::log(ERROR, std::string("413 payload Too Large"));
-		return false;
+	if (loc.hasMaxSize()) {
+		if (handl.getRequest().getBody().size() > loc.getClientMaxBodySize()) {
+			handl.sendResponse(handl.makeErrorResponse(srv, 413, true));
+			Logger::log(ERROR, "413 Payload Too Large");
+			return false;
+		}
+	} else {
+		if (handl.getRequest().getBody().size() > srv.getClientMaxBodySize())
+		{
+			handl.sendResponse(handl.makeErrorResponse(srv, 413, true));
+			Logger::log(ERROR, "413 Payload Too Large");
+			return false;
+		}
 	}
 
 	// 🔹 Version (only HTTP/1.1 allowed)
@@ -229,6 +238,17 @@ bool RequestValidator::checkPost(RequestHandler& handl, Server& srv) {
 		return false;
 	}
 
+	std::string cl = handl.getRequest().getHeader("content-length"); // FOR POST
+	if (!cl.empty()) {
+		long long len = std::atoll(cl.c_str());
+		size_t contentLength = static_cast<size_t>(len);
+		// Reject invalid lengths
+		if (contentLength < 0 || contentLength != handl.getRequest().getBody().size()) {
+			handl.sendResponse(handl.makeErrorResponse(srv, 400, true));
+			Logger::log(ERROR, "400 Bad Request: Invalid Content-Length value");
+			return false;
+		}
+	}
 	return true;
 }
 
