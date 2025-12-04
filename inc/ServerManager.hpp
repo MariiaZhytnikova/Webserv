@@ -10,6 +10,7 @@
 #include <poll.h>
 
 const size_t MAX_HEADER_SIZE = 8192;
+const time_t CLIENT_TIMEOUT = 10;
 
 struct ClientState {
 	int requestCount;
@@ -37,6 +38,7 @@ private:
 	bool hasFullRequest(const std::string &buf, size_t &reqEnd);
 	std::string extractNextRequest(std::string &buf, size_t reqEnd);
 	bool shouldCloseAfterRequest(int fd, const RequestHandler &h);
+	void checkTimeouts();
 
 public:
 	ServerManager() = delete;

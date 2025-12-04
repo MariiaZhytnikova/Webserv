@@ -169,7 +169,7 @@ void ServerManager::acceptNewClient(int listenFd) {
 	_clientBuffers[clientFd] = "";
 	// Track which listenFd spawned this client
 	_clientToListenFd[clientFd] = listenFd;
-	
+	_clientState[clientFd].lastActivity = time(NULL);
 }
 
 void ServerManager::readFromClient(int clientFd) {
@@ -220,59 +220,12 @@ void ServerManager::readFromClient(int clientFd) {
 	}
 }
 
-void ServerManager::run() {
-	setupSockets();
-
-	// Add all listening sockets to poll
-	for (std::map<int,int>::iterator it = _portSocketMap.begin();
-		it != _portSocketMap.end(); ++it) {
-		_fds.push_back({ it->first, POLLIN, 0 });
-	}
-
-	// vector::data() returns a raw pointer to the internal array of elements
-	while (g_running) {
-		int ret = poll(_fds.data(), _fds.size(), -1); // -1 = wait forever
-		if (ret < 0) {
-			if (errno == EINTR) {
-				Logger::log(INFO, "poll interrupted, continuing...");
-				continue;
-			}
-			Logger::log(ERROR, "poll() failed: " + std::string(strerror(errno)));
-			break;
-		}
-		for (size_t i = 0; i < _fds.size(); ++i) {
-			// true if there is data to read on this fd
-			if (_fds[i].revents & POLLIN) {
-				if (_portSocketMap.count(_fds[i].fd)) {
-					acceptNewClient(_fds[i].fd);
-				} else {
-					readFromClient(_fds[i].fd);
-				}
-			}
-		}
-		// delayed cleanup
-		if (!_toClose.empty()) {
-			for (int fd : _toClose) {
-				cleanupClient(fd);
-			}
-			_toClose.clear();
-		}
-	}
-
-	for (auto& pair : _portSocketMap)
-		close(pair.first); // socket fd
-
-	for (auto& client : _clientToListenFd)
-		close(client.first); // client fd
-
-	Logger::log(INFO, "Server shutting down...");
-}
-
 bool ServerManager::readSocketIntoBuffer(int clientFd, std::string &buf) {
 	char tmp[4096];
 	ssize_t bytes = recv(clientFd, tmp, sizeof(tmp), 0);
 
 	if (bytes > 0) {
+		_clientState[clientFd].lastActivity = time(NULL);
 		buf.append(tmp, bytes);
 		return true;
 	}
@@ -320,8 +273,74 @@ std::string ServerManager::extractNextRequest(std::string &buf, size_t reqEnd) {
 	return out;
 }
 
+void ServerManager::run() {
+	setupSockets();
+
+	// Add all listening sockets to poll
+	for (std::map<int,int>::iterator it = _portSocketMap.begin();
+		it != _portSocketMap.end(); ++it) {
+		_fds.push_back({ it->first, POLLIN, 0 });
+	}
+
+	// vector::data() returns a raw pointer to the internal array of elements
+	while (g_running) {
+		int ret = poll(_fds.data(), _fds.size(), 1000); // -1 = wait forever
+		if (ret < 0) {
+			if (errno == EINTR) {
+				Logger::log(INFO, "poll interrupted, continuing...");
+				continue;
+			}
+			Logger::log(ERROR, "poll() failed: " + std::string(strerror(errno)));
+			break;
+		}
+
+		checkTimeouts();
+		for (size_t i = 0; i < _fds.size(); ++i) {
+			// true if there is data to read on this fd
+			if (_fds[i].revents & POLLIN) {
+				if (_portSocketMap.count(_fds[i].fd)) {
+					acceptNewClient(_fds[i].fd);
+				} else {
+					readFromClient(_fds[i].fd);
+				}
+			}
+		}
+		// delayed cleanup
+		if (!_toClose.empty()) {
+			for (int fd : _toClose) {
+				cleanupClient(fd);
+			}
+			_toClose.clear();
+		}
+	}
+
+	for (auto& pair : _portSocketMap)
+		close(pair.first); // socket fd
+
+	for (auto& client : _clientToListenFd)
+		close(client.first); // client fd
+
+	Logger::log(INFO, "Server shutting down...");
+}
+
 bool ServerManager::shouldCloseAfterRequest(int fd, const RequestHandler &h) {
 	return (!h.keepAlive() || _clientState[fd].requestCount > 10);
+}
+
+void ServerManager::checkTimeouts() {
+	time_t now = time(NULL);
+
+	for (auto it = _clientState.begin(); it != _clientState.end(); ) {
+		int fd = it->first;
+
+		if (now - it->second.lastActivity > CLIENT_TIMEOUT) {
+			Logger::log(INFO, "timeout reached for fd " + std::to_string(fd));
+			_toClose.push_back(fd);
+			it = _clientState.erase(it);
+		} else {
+			++it;
+		}
+	}
 }
 
 void ServerManager::cleanupClient(int clientFd) {
@@ -339,5 +358,5 @@ void ServerManager::cleanupClient(int clientFd) {
 			break;
 		}
 	}
-	// Logger::log(DEBUG, "cleaned up client fd=" + std::to_string(clientFd));
+	Logger::log(TRACE, "cleaned up client fd=" + std::to_string(clientFd));
 }
