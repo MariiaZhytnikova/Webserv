@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include "utils.hpp"
 #include "Logger.hpp"
-
 CgiHandler::CgiHandler(const HttpRequest& req) : _request(req) {}
 
 HttpResponse CgiHandler::execute(
@@ -110,6 +109,8 @@ int CgiHandler::runProcess(
 	std::string& stdoutStr,
 	std::string& stderrStr
 ) {
+	const int CGI_TIMEOUT = 10;
+
 	int inPipe[2], outPipe[2], errPipe[2];
 	if (pipe(inPipe) < 0 || pipe(outPipe) < 0 || pipe(errPipe) < 0)
 		throw std::runtime_error("pipe failed");
@@ -130,8 +131,8 @@ int CgiHandler::runProcess(
 
 		std::vector<std::string> envStrings;
 		std::vector<char*> envp;
-		for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it)
-			envStrings.push_back(it->first + "=" + it->second);
+		for (auto& it : env)
+			envStrings.push_back(it.first + "=" + it.second);
 		for (size_t i = 0; i < envStrings.size(); ++i)
 			envp.push_back(const_cast<char*>(envStrings[i].c_str()));
 		envp.push_back(nullptr);
@@ -155,25 +156,39 @@ int CgiHandler::runProcess(
 		write(inPipe[1], _request.getBody().c_str(), _request.getBody().size());
 	close(inPipe[1]);
 
-	// Read stdout
+	fcntl(outPipe[0], F_SETFL, O_NONBLOCK);
+	fcntl(errPipe[0], F_SETFL, O_NONBLOCK);
+
 	stdoutStr.clear();
-	char buffer[1024];
-	ssize_t bytes;
-	while ((bytes = read(outPipe[0], buffer, sizeof(buffer))) > 0)
-		stdoutStr.append(buffer, bytes);
-	close(outPipe[0]);
-
-	// Read stderr
 	stderrStr.clear();
-	while ((bytes = read(errPipe[0], buffer, sizeof(buffer))) > 0)
-		stderrStr.append(buffer, bytes);
-	close(errPipe[0]);
 
-	int status;
-	waitpid(pid, &status, 0);
+	int status = -1;
+	time_t start = time(NULL);
 
-	if (WIFEXITED(status))
-		return WEXITSTATUS(status);
-	else
-		return -1;
+	char buffer[2048];
+
+	while (true) {
+		pid_t result = waitpid(pid, &status, WNOHANG);
+		if (result == pid) {
+			ssize_t n;
+			while ((n = read(outPipe[0], buffer, sizeof(buffer))) > 0) stdoutStr.append(buffer, n);
+			while ((n = read(errPipe[0], buffer, sizeof(buffer))) > 0) stderrStr.append(buffer, n);
+			break;
+		}
+
+		// Timeout check
+		if (difftime(time(NULL), start) > CGI_TIMEOUT) {
+			kill(pid, SIGKILL);
+			waitpid(pid, &status, 0);
+			throw std::runtime_error("CGI script timed out");
+		}
+
+		ssize_t n;
+		while ((n = read(outPipe[0], buffer, sizeof(buffer))) > 0) stdoutStr.append(buffer, n);
+		while ((n = read(errPipe[0], buffer, sizeof(buffer))) > 0) stderrStr.append(buffer, n);
+
+		usleep(100 * 1000); // sleep 100ms
+	}
+
+	return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }
