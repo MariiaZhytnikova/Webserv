@@ -168,10 +168,8 @@ int CgiHandler::runProcess(
 	char buffer[2048];
 
 	while (true) {
-		// Check if child exited
 		pid_t result = waitpid(pid, &status, WNOHANG);
 		if (result == pid) {
-			// Read remaining output
 			ssize_t n;
 			while ((n = read(outPipe[0], buffer, sizeof(buffer))) > 0) stdoutStr.append(buffer, n);
 			while ((n = read(errPipe[0], buffer, sizeof(buffer))) > 0) stderrStr.append(buffer, n);
@@ -185,7 +183,6 @@ int CgiHandler::runProcess(
 			throw std::runtime_error("CGI script timed out");
 		}
 
-		// Try to read output while waiting
 		ssize_t n;
 		while ((n = read(outPipe[0], buffer, sizeof(buffer))) > 0) stdoutStr.append(buffer, n);
 		while ((n = read(errPipe[0], buffer, sizeof(buffer))) > 0) stderrStr.append(buffer, n);
