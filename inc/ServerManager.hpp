@@ -13,8 +13,9 @@ const size_t MAX_HEADER_SIZE = 8192;
 const time_t CLIENT_TIMEOUT = 10;
 
 struct ClientState {
-	int requestCount;
-	time_t lastActivity;
+	int		fd;
+	int		requestCount;
+	time_t	lastActivity;
 };
 
 class RequestHandler;

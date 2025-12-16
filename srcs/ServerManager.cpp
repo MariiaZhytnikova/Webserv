@@ -151,7 +151,7 @@ void ServerManager::acceptNewClient(int listenFd) {
 		return;
 	}
 
-	_clientState[clientFd] = {0, time(NULL)};
+	_clientState[clientFd] = {clientFd, 0, time(NULL)};
 	char clientIP[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, INET_ADDRSTRLEN);
 
@@ -293,7 +293,6 @@ void ServerManager::run() {
 			Logger::log(ERROR, "poll() failed: " + std::string(strerror(errno)));
 			break;
 		}
-
 		checkTimeouts();
 		for (size_t i = 0; i < _fds.size(); ++i) {
 			// true if there is data to read on this fd
@@ -334,7 +333,13 @@ void ServerManager::checkTimeouts() {
 		int fd = it->first;
 
 		if (now - it->second.lastActivity > CLIENT_TIMEOUT) {
-			Logger::log(INFO, "timeout reached for fd " + std::to_string(fd));
+			// Logger::log(INFO, "timeout reached for fd " + std::to_string(fd));
+			const char *msg =
+				"HTTP/1.1 408 Request Timeout\r\n"
+				"Connection: close\r\n"
+				"Content-Length: 0\r\n"
+				"\r\n";
+			send(it->second.fd, msg, strlen(msg), 0);
 			_toClose.push_back(fd);
 			it = _clientState.erase(it);
 		} else {
